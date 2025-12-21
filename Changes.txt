@@ -1,0 +1,21 @@
+Do all of these in this exact order: 
+
+1. For the admin product management options. Only show the 4 default products for now, and tick box next to choose if it should be a default product for the sales person. The calculation options should be called "Lists", which we can insert to manage or change. We can show for each list in which produce calculation is this used. I think take out the calculation methods for now, rather show next to each products on the products screen if there is a customized code based calculation method. If a product does have a customized code based calculation method, then the user will simply select the product and insert the amount with no  calculations. THe principle is that we can let a client add more products, an if they want us to add a custom code based calculation we can then develop that for them. 
+
+2. Don't show the account owner ID to the sales person and manager. It serves no purpose
+
+3.For the legal tab, insert a link to insert a SharePoint link for the client with all their documents. Also add tick boxes for information that is received from the client. We can create an admin function to select which tickbox descriptions these can be.
+
+4. The sales pipeline for the sales person is not updating on the dashboard. No numbers are showing, and the one client definitely has one in a pipeline.
+
+5. Take away the report header option for the sales person. It serves no purpose.
+
+6. Client location list, where we can add all the locations where the client are located.
+
+7. Need a contact management option on the client. Crud functions for all contact people with relevant information. Name, surname, email, Job title, last communication. Physical address is not needed, but a place of work can be inserted with can be selected from the client locations list. 
+
+8. Next follow up dates on all clients for the sales person should show in the follow up task header
+
+9. Take seed data option away for the manager
+
+10. Allow admin to edit the sales pipeline statuses, and also the order in which they should appear.

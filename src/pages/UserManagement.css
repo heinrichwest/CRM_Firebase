@@ -1,0 +1,921 @@
+.user-management {
+  padding: 20px;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+.user-management-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.view-mode-toggle {
+  display: flex;
+  gap: 10px;
+}
+
+.view-mode-toggle button {
+  padding: 8px 16px;
+  border: 1px solid #ddd;
+  background: white;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.view-mode-toggle button:hover {
+  background: #f8f9fa;
+}
+
+.view-mode-toggle button.active {
+  background: #12265E;
+  color: white;
+  border-color: #12265E;
+}
+
+/* List View */
+.users-list-view {
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.users-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.users-table thead {
+  background: #f8f9fa;
+}
+
+.users-table th {
+  padding: 15px;
+  text-align: left;
+  font-weight: 600;
+  border-bottom: 2px solid #ddd;
+  color: #12265E;
+}
+
+.users-table td {
+  padding: 15px;
+  border-bottom: 1px solid #eee;
+}
+
+.users-table tbody tr:hover {
+  background: #f8f9fa;
+}
+
+.user-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.user-avatar-small {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.user-avatar-small.placeholder {
+  background: #12265E;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.role-select,
+.sales-level-select,
+.manager-select {
+  padding: 6px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  background: white;
+  min-width: 120px;
+}
+
+.sales-level-select:disabled,
+.manager-select:disabled {
+  background: #f5f5f5;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.sales-level-select option,
+.manager-select option {
+  padding: 4px;
+}
+
+.custom-permissions-badge {
+  background: #ffc107;
+  color: #000;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.role-permissions-badge {
+  background: #e9ecef;
+  color: #666;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+}
+
+.edit-permissions-btn {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.edit-permissions-btn:hover {
+  background: #0056b3;
+}
+
+/* Permission Editor */
+.permission-editor {
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 20px;
+  margin-top: 20px;
+}
+
+.editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.editor-header h2 {
+  margin: 0;
+  color: #12265E;
+  font-size: 1.2rem;
+}
+
+.close-editor-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #666;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.close-editor-btn:hover {
+  color: #000;
+}
+
+.editor-info {
+  margin-bottom: 15px;
+  color: #666;
+  font-size: 14px;
+}
+
+.permissions-container {
+  max-height: 600px;
+  overflow-y: auto;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: #f8f9fa;
+  margin-bottom: 20px;
+}
+
+.permission-category {
+  margin-bottom: 25px;
+}
+
+.permission-category:last-child {
+  margin-bottom: 0;
+}
+
+.category-heading {
+  font-size: 16px;
+  font-weight: 600;
+  color: #12265E;
+  margin: 0 0 12px 0;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #12265E;
+}
+
+.permissions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 10px;
+  padding: 10px 0;
+}
+
+.permission-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.permission-item:hover {
+  background: white;
+}
+
+.permission-item input[type="checkbox"] {
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+}
+
+.permission-name {
+  flex: 1;
+  font-size: 14px;
+}
+
+.custom-indicator {
+  font-size: 11px;
+  color: #ffc107;
+  font-weight: 500;
+}
+
+.editor-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.clear-custom-btn {
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.clear-custom-btn:hover {
+  background: #c82333;
+}
+
+/* Grid View */
+.users-grid-view {
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  overflow-x: auto;
+}
+
+.grid-container {
+  min-width: 800px;
+}
+
+.permissions-grid-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.permissions-grid-table thead {
+  background: #f8f9fa;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.permissions-grid-table th {
+  padding: 12px;
+  text-align: center;
+  border-bottom: 2px solid #ddd;
+  font-weight: 600;
+  vertical-align: top;
+}
+
+.permissions-grid-table .feature-column {
+  min-width: 200px;
+  text-align: left;
+  background: #f8f9fa;
+  position: sticky;
+  left: 0;
+  z-index: 5;
+}
+
+.permissions-grid-table .user-column {
+  min-width: 150px;
+  max-width: 200px;
+}
+
+.user-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+}
+
+.user-avatar-tiny {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.user-avatar-tiny.placeholder {
+  background: #12265E;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.user-header-info {
+  text-align: center;
+}
+
+.user-name-small {
+  font-size: 12px;
+  font-weight: 600;
+  color: #12265E;
+  margin-bottom: 4px;
+  word-break: break-word;
+}
+
+.user-role-small {
+  font-size: 11px;
+  color: #666;
+  text-transform: capitalize;
+}
+
+.permissions-grid-table tbody tr {
+  border-bottom: 1px solid #eee;
+}
+
+.permissions-grid-table tbody tr:hover {
+  background: #f8f9fa;
+}
+
+.feature-name-cell {
+  padding: 12px;
+  font-weight: 500;
+  color: #333;
+  background: #f8f9fa;
+  position: sticky;
+  left: 0;
+  z-index: 1;
+}
+
+.permission-checkbox-cell {
+  text-align: center;
+  padding: 12px;
+}
+
+.permission-checkbox-cell input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+}
+
+.category-row {
+  background: #e9ecef !important;
+}
+
+.category-header-cell {
+  padding: 12px 15px !important;
+  font-size: 14px;
+  font-weight: 600;
+  color: #12265E;
+  background: #e9ecef !important;
+  border-bottom: 2px solid #12265E;
+}
+
+.category-header-cell strong {
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .permissions-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .user-management-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+
+  .users-table {
+    font-size: 14px;
+  }
+
+  .users-table th,
+  .users-table td {
+    padding: 10px;
+  }
+
+  .permissions-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Header Actions */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.add-user-btn {
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background 0.3s ease;
+}
+
+.add-user-btn:hover {
+  background: #218838;
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.add-user-modal {
+  background: white;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid #eee;
+}
+
+.modal-header h2 {
+  margin: 0;
+  color: #12265E;
+  font-size: 1.25rem;
+}
+
+.close-modal-btn {
+  background: none;
+  border: none;
+  font-size: 28px;
+  cursor: pointer;
+  color: #666;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.close-modal-btn:hover {
+  color: #000;
+}
+
+.add-user-form {
+  padding: 20px;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 500;
+  color: #333;
+  font-size: 14px;
+}
+
+.form-group input[type="text"],
+.form-group input[type="email"],
+.form-group select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: border-color 0.3s ease;
+}
+
+.form-group input[type="text"]:focus,
+.form-group input[type="email"]:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: #12265E;
+}
+
+.checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.checkbox-group label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-weight: normal;
+}
+
+.checkbox-group input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.hint-text {
+  font-size: 12px;
+  color: #666;
+  margin-left: 26px;
+}
+
+.form-info {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+  padding: 12px;
+  margin-bottom: 20px;
+}
+
+.form-info p {
+  margin: 0;
+  font-size: 13px;
+  color: #666;
+  line-height: 1.5;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #eee;
+}
+
+.cancel-btn {
+  background: #f8f9fa;
+  color: #333;
+  border: 1px solid #ddd;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.3s ease;
+}
+
+.cancel-btn:hover {
+  background: #e9ecef;
+}
+
+.submit-btn {
+  background: #12265E;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background 0.3s ease;
+}
+
+.submit-btn:hover {
+  background: #0d1c47;
+}
+
+.submit-btn:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+}
+
+/* Tenant Filter Styles */
+.tenant-filter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tenant-filter label {
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.tenant-filter-select {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  min-width: 200px;
+  background: white;
+  cursor: pointer;
+}
+
+.tenant-filter-select:focus {
+  outline: none;
+  border-color: #12265E;
+}
+
+/* Tenant Badge Styles */
+.tenant-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.tenant-badge.unassigned {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+/* Password input in modal */
+.form-group input[type="password"] {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: border-color 0.3s ease;
+}
+
+.form-group input[type="password"]:focus {
+  outline: none;
+  border-color: #12265E;
+}
+
+/* CSV Upload Button */
+.csv-upload-btn {
+  padding: 10px 20px;
+  background: #6c5ce7;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 14px;
+  transition: background 0.3s ease;
+}
+
+.csv-upload-btn:hover {
+  background: #5b4cdb;
+}
+
+/* CSV Upload Form */
+.csv-upload-form {
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 25px;
+  margin-bottom: 20px;
+}
+
+.csv-upload-form h3 {
+  margin: 0 0 10px 0;
+  color: #12265E;
+}
+
+.csv-upload-form .form-hint {
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+.csv-upload-form .form-row {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.csv-upload-form .form-group {
+  flex: 1;
+}
+
+.file-input {
+  padding: 8px;
+  border: 1px dashed #ddd;
+  border-radius: 6px;
+  width: 100%;
+  cursor: pointer;
+}
+
+.file-input:hover {
+  border-color: #12265E;
+  background: #f8f9fa;
+}
+
+/* CSV Errors */
+.csv-errors {
+  background: #ffebee;
+  border: 1px solid #ffcdd2;
+  border-radius: 6px;
+  padding: 15px;
+  margin: 15px 0;
+}
+
+.csv-errors strong {
+  color: #c62828;
+}
+
+.csv-errors ul {
+  margin: 10px 0 0 0;
+  padding-left: 20px;
+  color: #c62828;
+  font-size: 13px;
+}
+
+/* CSV Preview Table */
+.csv-preview {
+  margin: 20px 0;
+}
+
+.csv-preview h4 {
+  margin: 0 0 10px 0;
+  color: #12265E;
+}
+
+.csv-table-wrapper {
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+}
+
+.csv-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.csv-table th,
+.csv-table td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+}
+
+.csv-table th {
+  background: #f8f9fa;
+  font-weight: 600;
+  color: #12265E;
+  position: sticky;
+  top: 0;
+}
+
+.csv-table tbody tr:hover {
+  background: #f8f9fa;
+}
+
+.csv-table .success-row {
+  background: #e8f5e9;
+}
+
+.csv-table .error-row {
+  background: #ffebee;
+}
+
+.status-success {
+  color: #2e7d32;
+  font-weight: 500;
+}
+
+.status-error {
+  color: #c62828;
+  font-weight: 500;
+  cursor: help;
+}
+
+.status-pending {
+  color: #666;
+}
+
+/* Password status indicators */
+.password-set {
+  color: #2e7d32;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.password-default {
+  color: #f57c00;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Role status indicators */
+.role-set {
+  color: #1565c0;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.role-default {
+  color: #f57c00;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Form field hint */
+.form-field-hint {
+  display: block;
+  font-size: 12px;
+  color: #666;
+  margin-top: 5px;
+}
+
+/* Upload Progress */
+.upload-progress {
+  margin: 20px 0;
+  text-align: center;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background: #e0e0e0;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #12265E, #1a3a7a);
+  transition: width 0.3s ease;
+}
+
+.upload-progress span {
+  color: #666;
+  font-size: 14px;
+}
+
+/* Form Actions */
+.csv-upload-form .form-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid #eee;
+}
+

@@ -1,0 +1,194 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Users collection - allow authenticated users to read all users (needed for seed data)
+    // Users can write their own document, or admins can create/update any user
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      // Allow create if: user is creating their own doc OR they are authenticated (admin creating for others)
+      // Admin permissions are enforced in the app layer
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated(); // Allow updates for role management (admin check in app)
+      allow delete: if false; // Prevent deletion of user documents
+    }
+    
+    // Roles collection - allow authenticated users to read roles
+    match /roles/{roleId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated(); // Only admins should write, but we'll check in the app
+    }
+    
+    // System settings collection
+    match /systemSettings/{document=**} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated(); // Only admins should write, but we'll check in the app
+    }
+    
+    // Clients collection - authenticated users can read/write
+    match /clients/{clientId} {
+      allow read, write: if isAuthenticated();
+      
+      // Client subcollections
+      match /products/{productId} {
+        allow read, write: if isAuthenticated();
+      }
+      
+      match /contracts/{contractId} {
+        allow read, write: if isAuthenticated();
+      }
+      
+      match /activities/{activityId} {
+        allow read, write: if isAuthenticated();
+      }
+    }
+    
+    // Deals collection
+    match /deals/{dealId} {
+      allow read, write: if isAuthenticated();
+    }
+    
+    // Quotes collection
+    match /quotes/{quoteId} {
+      allow read, write: if isAuthenticated();
+    }
+    
+    // Invoices collection
+    match /invoices/{invoiceId} {
+      allow read, write: if isAuthenticated();
+    }
+    
+    // Messages collection
+    match /messages/{messageId} {
+      allow read, write: if isAuthenticated();
+    }
+    
+    // Forecasts collection
+    match /forecasts/{forecastId} {
+      allow read, write: if isAuthenticated();
+    }
+    
+    // Feedback collection
+    match /feedback/{feedbackId} {
+      allow read, write: if isAuthenticated();
+    }
+    
+    // Financial Dashboard collection
+    match /financialDashboard/{document=**} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // Detailed client financials collection
+    match /clientFinancials/{financialId} {
+      allow read, write: if isAuthenticated();
+    }
+    
+    // Follow-up Tasks collection
+    match /followUpTasks/{taskId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // Skills Partners collection
+    match /skillsPartners/{partnerId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // Client interactions subcollection
+    match /clients/{clientId}/interactions/{interactionId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // Team Chat (Chatroom) collection
+    match /chatroom/{messageId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // Direct Messages collection
+    match /directMessages/{messageId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // Product Lines collection (product categories)
+    match /productLines/{productLineId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated(); // Admin only in app
+    }
+
+    // Products catalog collection
+    match /products/{productId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated(); // Admin only in app
+    }
+
+    // Calculation Options collection (for product calculations)
+    match /calculationOptions/{optionId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated(); // Admin only in app
+    }
+
+    // Budgets collection (for budget tracking)
+    match /budgets/{budgetId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated(); // Admin only in app
+    }
+
+    // Tenants collection (multi-tenancy support)
+    match /tenants/{tenantId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated(); // System admin only in app
+    }
+
+    // User Invitations collection (for inviting new users)
+    match /userInvitations/{invitationId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated(); // Admin only in app
+    }
+
+    // Financial Uploads collection (for accountant uploads)
+    match /financialUploads/{uploadId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated(); // Admin/accountant only in app
+    }
+
+    // Financial Data collection (uploaded financial data)
+    match /financialData/{dataId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated(); // Admin/accountant only in app
+    }
+
+    // Tenant Product Configs collection (tenant-specific product settings)
+    match /tenantProductConfigs/{configId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated(); // Tenant admin only in app
+    }
+
+    // Pipeline Statuses collection (deal pipeline statuses)
+    match /pipelineStatuses/{statusId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated(); // Admin only in app
+    }
+
+    // Calculation Templates collection
+    match /calculationTemplates/{templateId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated(); // Admin only in app
+    }
+
+    // SETAs collection (SETA management for client forms)
+    match /setas/{setaId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated(); // System admin only in app
+    }
+
+    // Job Titles collection (Job titles management for contact persons)
+    match /jobTitles/{jobTitleId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated(); // System admin only in app
+    }
+  }
+}

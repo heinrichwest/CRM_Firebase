@@ -1,0 +1,473 @@
+.role-management {
+  padding: 20px;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+.role-management-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.add-role-btn {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.add-role-btn:hover {
+  background: #0056b3;
+}
+
+.add-role-form {
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 30px;
+}
+
+.add-role-form .form-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.add-role-form .form-header h2 {
+  margin: 0;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #666;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.close-btn:hover {
+  color: #000;
+}
+
+.add-role-form .form-group {
+  margin-bottom: 20px;
+}
+
+.add-role-form .form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #333;
+}
+
+.add-role-form .form-group input,
+.add-role-form .form-group textarea {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.add-role-form .form-group textarea {
+  resize: vertical;
+}
+
+.permissions-container {
+  max-height: 400px;
+  overflow-y: auto;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: #f8f9fa;
+}
+
+.permission-category {
+  margin-bottom: 20px;
+}
+
+.permission-category:last-child {
+  margin-bottom: 0;
+}
+
+.category-heading-small {
+  font-size: 14px;
+  font-weight: 600;
+  color: #12265E;
+  margin: 0 0 10px 0;
+  padding-bottom: 6px;
+  border-bottom: 2px solid #12265E;
+}
+
+.permissions-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 10px;
+  padding: 10px 0;
+}
+
+.permission-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 5px;
+}
+
+.permission-checkbox input[type="checkbox"] {
+  cursor: pointer;
+}
+
+.add-role-form .form-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+.role-grid-container {
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin-bottom: 30px;
+  position: relative;
+}
+
+.role-grid-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding: 10px 15px 15px 15px;
+  border-top: 1px solid #eee;
+  background: #f8f9fa;
+}
+
+.save-all-roles-btn {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 18px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.save-all-roles-btn:hover {
+  background-color: #0056b3;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.save-all-roles-btn:active {
+  background-color: #004494;
+  box-shadow: none;
+}
+
+.role-permissions-grid {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 800px;
+}
+
+.role-permissions-grid thead {
+  background: #f8f9fa;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.role-permissions-grid th {
+  padding: 15px;
+  text-align: left;
+  border-bottom: 2px solid #ddd;
+  font-weight: 600;
+  vertical-align: top;
+}
+
+.role-permissions-grid th.role-column {
+  border-left: 1px solid #ddd;
+  border-right: 1px solid #ddd;
+}
+
+.role-permissions-grid th.role-column:first-of-type {
+  border-left: 2px solid #12265E;
+}
+
+.role-permissions-grid .feature-column {
+  min-width: 250px;
+  width: 250px;
+  background: #f8f9fa;
+  position: sticky;
+  left: 0;
+  z-index: 5;
+  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1);
+}
+
+.role-permissions-grid thead .feature-column {
+  z-index: 15;
+  box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.role-permissions-grid .role-column {
+  min-width: 180px;
+  width: 200px;
+  vertical-align: top;
+  border-left: 1px solid #ddd;
+  border-right: 1px solid #ddd;
+}
+
+.role-permissions-grid .role-column:first-of-type {
+  border-left: 2px solid #12265E;
+}
+
+.role-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 100px;
+}
+
+.role-header > div:first-child {
+  flex: 1;
+}
+
+.role-description {
+  font-size: 11px;
+  color: #666;
+  margin-top: 4px;
+  font-weight: normal;
+  line-height: 1.4;
+}
+
+.role-actions {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.role-actions button {
+  padding: 4px 8px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.edit-role-btn {
+  background: #007bff;
+  color: white;
+}
+
+.edit-role-btn:hover {
+  background: #0056b3;
+}
+
+.save-role-btn {
+  background: #28a745;
+  color: white;
+}
+
+.save-role-btn:hover {
+  background: #218838;
+}
+
+.cancel-role-btn {
+  background: #6c757d;
+  color: white;
+}
+
+.cancel-role-btn:hover {
+  background: #5a6268;
+}
+
+.delete-role-btn {
+  background: #dc3545;
+  color: white;
+}
+
+.delete-role-btn:hover {
+  background: #c82333;
+}
+
+.role-permissions-grid tbody tr {
+  border-bottom: 1px solid #eee;
+}
+
+.role-permissions-grid tbody tr .permission-cell {
+  border-left: 1px solid #ddd;
+  border-right: 1px solid #ddd;
+}
+
+.role-permissions-grid tbody tr .permission-cell:first-of-type {
+  border-left: 2px solid #12265E;
+}
+
+.role-permissions-grid tbody tr:hover {
+  background: #f8f9fa;
+}
+
+.role-permissions-grid .feature-name {
+  padding: 12px 15px;
+  font-weight: 500;
+  color: #333;
+  background: #f8f9fa;
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1);
+  white-space: nowrap;
+}
+
+.role-permissions-grid tbody tr.category-row .category-header-cell.feature-column {
+  z-index: 3;
+}
+
+.permission-cell {
+  text-align: center;
+  padding: 12px;
+  vertical-align: middle;
+  width: 200px;
+  border-left: 1px solid #ddd;
+  border-right: 1px solid #ddd;
+}
+
+.permission-cell:first-of-type {
+  border-left: 2px solid #12265E;
+}
+
+.permission-cell input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  margin: 0 auto;
+  display: block;
+}
+
+.permission-cell input[type="checkbox"]:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.category-row {
+  background: #e9ecef !important;
+}
+
+.category-header-cell {
+  padding: 10px 15px !important;
+  font-size: 12px;
+  font-weight: 700;
+  color: #12265E;
+  background: #e9ecef !important;
+  border-bottom: 2px solid #12265E;
+  border-top: 2px solid #12265E;
+  text-align: left;
+}
+
+.category-header-cell.feature-column {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1);
+}
+
+.category-header-cell strong {
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 11px;
+}
+
+.user-roles-section {
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.user-roles-section h2 {
+  margin-top: 0;
+  margin-bottom: 20px;
+  color: #12265E;
+}
+
+.user-roles-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.user-roles-table thead {
+  background: #f8f9fa;
+}
+
+.user-roles-table th {
+  padding: 12px;
+  text-align: left;
+  font-weight: 600;
+  border-bottom: 2px solid #ddd;
+}
+
+.user-roles-table td {
+  padding: 12px;
+  border-bottom: 1px solid #eee;
+}
+
+.user-roles-table tbody tr:hover {
+  background: #f8f9fa;
+}
+
+.current-role {
+  background: #e9ecef;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.user-roles-table select {
+  padding: 6px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.cancel-btn {
+  background: #6c757d;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.save-btn {
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.save-btn:hover {
+  background: #218838;
+}
+

@@ -1,0 +1,246 @@
+.add-product-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.add-product-modal {
+  background: white;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 550px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+}
+
+.add-product-modal .modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e0e0e0;
+  background: #f8f9fa;
+}
+
+.add-product-modal .modal-header h2 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: #12265A;
+}
+
+.add-product-modal .modal-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #666;
+  line-height: 1;
+  padding: 0;
+}
+
+.add-product-modal .modal-close:hover {
+  color: #333;
+}
+
+.add-product-modal .modal-body {
+  padding: 20px;
+}
+
+.add-product-modal .modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 20px;
+  border-top: 1px solid #e0e0e0;
+  background: #f8f9fa;
+}
+
+.add-product-modal .modal-loading {
+  padding: 40px;
+  text-align: center;
+  color: #666;
+}
+
+/* Form Groups */
+.add-product-modal .form-group {
+  margin-bottom: 16px;
+}
+
+.add-product-modal .form-group label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 500;
+  color: #333;
+}
+
+.add-product-modal .form-group .required {
+  color: #e53935;
+  margin-left: 2px;
+}
+
+.add-product-modal .form-group input,
+.add-product-modal .form-group select,
+.add-product-modal .form-group textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.95rem;
+  box-sizing: border-box;
+}
+
+.add-product-modal .form-group input:focus,
+.add-product-modal .form-group select:focus {
+  outline: none;
+  border-color: #12265A;
+  box-shadow: 0 0 0 2px rgba(18, 38, 90, 0.1);
+}
+
+/* Section Divider */
+.form-section-divider {
+  display: flex;
+  align-items: center;
+  margin: 24px 0 16px 0;
+}
+
+.form-section-divider::before,
+.form-section-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #e0e0e0;
+}
+
+.form-section-divider span {
+  padding: 0 12px;
+  color: #666;
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Calculation Info */
+.calculation-info {
+  background: #fff3e0;
+  border-left: 3px solid #FFA600;
+  padding: 12px 16px;
+  border-radius: 0 4px 4px 0;
+  margin-bottom: 20px;
+}
+
+.calculation-info .formula-label {
+  font-weight: 600;
+  color: #e65100;
+  margin-right: 8px;
+}
+
+.calculation-info .formula-text {
+  color: #333;
+}
+
+/* Dynamic Fields */
+.dynamic-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.dynamic-fields .form-group {
+  margin-bottom: 0;
+}
+
+/* Calculated Total */
+.calculated-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #e8f5e9;
+  padding: 16px 20px;
+  border-radius: 8px;
+  margin-top: 24px;
+}
+
+.calculated-total .total-label {
+  font-weight: 600;
+  color: #2e7d32;
+  font-size: 1rem;
+}
+
+.calculated-total .total-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #1b5e20;
+}
+
+/* Empty State */
+.add-product-modal .empty-state {
+  text-align: center;
+  padding: 30px;
+  color: #666;
+  background: #fafafa;
+  border-radius: 8px;
+}
+
+.add-product-modal .empty-state p {
+  margin: 0;
+}
+
+/* Buttons */
+.add-product-modal .btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.add-product-modal .btn-primary {
+  background: #12265A;
+  color: white;
+}
+
+.add-product-modal .btn-primary:hover:not(:disabled) {
+  background: #1a3a7a;
+}
+
+.add-product-modal .btn-secondary {
+  background: #f0f0f0;
+  color: #333;
+}
+
+.add-product-modal .btn-secondary:hover {
+  background: #e0e0e0;
+}
+
+.add-product-modal .btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .add-product-modal {
+    width: 95%;
+    max-height: 95vh;
+  }
+
+  .dynamic-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .calculated-total {
+    flex-direction: column;
+    gap: 8px;
+    text-align: center;
+  }
+}

@@ -1,0 +1,126 @@
+.edit-financial {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.edit-financial-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.edit-financial h1 {
+  margin: 0;
+  color: #12265E;
+}
+
+.header-actions {
+  display: flex;
+  gap: 15px;
+}
+
+.cancel-btn {
+  padding: 12px 24px;
+  background-color: #f0f0f0;
+  color: #12265E;
+  border: none;
+  border-radius: 5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.cancel-btn:hover {
+  background-color: #e0e0e0;
+}
+
+.save-btn {
+  padding: 12px 24px;
+  background-color: #12265E;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.save-btn:hover:not(:disabled) {
+  background-color: #1a3a7a;
+}
+
+.save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.financial-edit-table {
+  background: white;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(18, 38, 94, 0.1);
+  border-top: 4px solid #12265E;
+  overflow-x: auto;
+}
+
+.financial-edit-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.financial-edit-table th {
+  background-color: #f8f9fa;
+  padding: 15px;
+  text-align: left;
+  font-weight: 600;
+  color: #12265E;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.financial-edit-table td {
+  padding: 15px;
+  border-bottom: 1px solid #eee;
+}
+
+.product-name {
+  font-weight: 500;
+  color: #12265E;
+}
+
+.currency-input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  font-size: 1rem;
+  font-family: inherit;
+}
+
+.currency-input:focus {
+  outline: none;
+  border-color: #12265E;
+  box-shadow: 0 0 0 2px rgba(18, 38, 94, 0.1);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .edit-financial-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+
+  .header-actions {
+    width: 100%;
+  }
+
+  .cancel-btn,
+  .save-btn {
+    flex: 1;
+  }
+}
+
+
+
+

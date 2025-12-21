@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forecast Screen Wireframe</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border: 2px solid #333;
+        }
+        
+        .header {
+            text-align: center;
+            padding: 15px;
+            background: #e8e8e8;
+            border-bottom: 2px solid #333;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #333;
+        }
+        
+        .tab {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            border-right: 1px solid #333;
+            background: #f0f0f0;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        .tab:last-child {
+            border-right: none;
+        }
+        
+        .tab.active {
+            background: white;
+        }
+        
+        .client-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #ccc;
+        }
+        
+        .client-info h2 {
+            font-size: 20px;
+            margin-bottom: 5px;
+        }
+        
+        .client-info p {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border: 1px solid #333;
+            background: white;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .btn:hover {
+            background: #f0f0f0;
+        }
+        
+        .breadcrumb {
+            padding: 10px 20px;
+            background: #f0f0f0;
+            border-bottom: 1px solid #ddd;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .breadcrumb a {
+            color: #2196F3;
+            text-decoration: none;
+        }
+        
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+        
+        .forecast-content {
+            padding: 20px;
+        }
+        
+        .forecast-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .forecast-header h3 {
+            font-size: 20px;
+            color: #333;
+        }
+        
+        .forecast-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .save-forecast-btn {
+            padding: 8px 16px;
+            border: 1px solid #333;
+            background: #4CAF50;
+            color: white;
+            cursor: pointer;
+            font-size: 12px;
+            border-radius: 3px;
+        }
+        
+        .save-forecast-btn:hover {
+            background: #45a049;
+        }
+        
+        .export-btn {
+            padding: 8px 16px;
+            border: 1px solid #333;
+            background: #2196F3;
+            color: white;
+            cursor: pointer;
+            font-size: 12px;
+            border-radius: 3px;
+        }
+        
+        .export-btn:hover {
+            background: #1976D2;
+        }
+        
+        .forecast-period {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        
+        .forecast-period h4 {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .forecast-period p {
+            font-size: 12px;
+            color: #888;
+        }
+        
+        .forecast-table-container {
+            overflow-x: auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        
+        .forecast-table {
+            width: 100%;
+            min-width: 1200px;
+            border-collapse: collapse;
+        }
+        
+        .forecast-table th,
+        .forecast-table td {
+            padding: 8px;
+            text-align: center;
+            border: 1px solid #ddd;
+            font-size: 11px;
+        }
+        
+        .forecast-table th {
+            background: #f0f0f0;
+            font-weight: bold;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        .product-header {
+            background: #e3f2fd !important;
+            font-weight: bold;
+            text-align: left !important;
+            padding-left: 10px !important;
+        }
+        
+        .product-row {
+            background: #fafafa;
+        }
+        
+        .product-row td:first-child {
+            text-align: left;
+            padding-left: 20px;
+            font-weight: 500;
+        }
+        
+        .total-row {
+            background: #e8f5e8 !important;
+            font-weight: bold;
+        }
+        
+        .total-row td:first-child {
+            text-align: left !important;
+            padding-left: 10px !important;
+        }
+        
+        .editable-cell {
+            background: #fff3e0;
+            cursor: pointer;
+        }
+        
+        .editable-cell:hover {
+            background: #ffe0b2;
+        }
+        
+        .historical-data {
+            background: #f5f5f5;
+        }
+        
+        .ytd-data {
+            background: #e8f5e8;
+        }
+        
+        .forecast-data {
+            background: #fff3e0;
+        }
+        
+        .amount {
+            font-weight: 500;
+        }
+        
+        .currency {
+            font-size: 10px;
+            color: #666;
+        }
+        
+        .note {
+            margin-top: 15px;
+            padding: 10px;
+            background: #f0f8ff;
+            border-left: 4px solid #2196F3;
+            font-size: 12px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">Client Detail - Revenue Forecast</div>
+        
+        <div class="tabs">
+            <div class="tab">Products</div>
+            <div class="tab active">Financials</div>
+            <div class="tab">Legal</div>
+        </div>
+        
+        <div class="breadcrumb">
+            <a href="#" onclick="goBack()">← Back to Financials</a> | 
+            <a href="#" onclick="goToClient()">Client Overview</a>
+        </div>
+        
+        <div class="client-header">
+            <div class="client-info">
+                <h2>Client A - Revenue Forecast</h2>
+                <p>Corporate</p>
+            </div>
+            <div class="action-buttons">
+                <button class="btn">Edit Client</button>
+            </div>
+        </div>
+        
+        <div class="forecast-content">
+            <div class="forecast-header">
+                <h3>Revenue Forecast: June 2025 - February 2026</h3>
+                <div class="forecast-actions">
+                    <button class="export-btn" onclick="exportForecast()">Export to Excel</button>
+                    <button class="save-forecast-btn" onclick="saveForecast()">Save Forecast</button>
+                </div>
+            </div>
+            
+            <div class="forecast-period">
+                <h4>Forecast Period: Financial Year 2025/2026</h4>
+                <p>Current Date: June 20, 2025 | YTD: Jan - Jun 2025 | Forecast: Jul 2025 - Feb 2026</p>
+            </div>
+            
+            <div class="forecast-table-container">
+                <table class="forecast-table">
+                    <thead>
+                        <tr>
+                            <th rowspan="2" style="vertical-align: middle;">Product</th>
+                            <th class="historical-data">Previous Year<br>(2024)</th>
+                            <th class="ytd-data">YTD 2025<br>(Jan-Jun)</th>
+                            <th colspan="8" class="forecast-data">Forecast Remaining Months</th>
+                            <th style="background: #4CAF50; color: white;">Full Year<br>Forecast</th>
+                        </tr>
+                        <tr>
+                            <th class="historical-data">Total 2024</th>
+                            <th class="ytd-data">Actual</th>
+                            <th class="forecast-data">Jul 2025</th>
+                            <th class="forecast-data">Aug 2025</th>
+                            <th class="forecast-data">Sep 2025</th>
+                            <th class="forecast-data">Oct 2025</th>
+                            <th class="forecast-data">Nov 2025</th>
+                            <th class="forecast-data">Dec 2025</th>
+                            <th class="forecast-data">Jan 2026</th>
+                            <th class="forecast-data">Feb 2026</th>
+                            <th style="background: #4CAF50; color: white;">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="product-row">
+                            <td>Learnerships</td>
+                            <td class="historical-data amount">R 400,000</td>
+                            <td class="ytd-data amount">R 240,000</td>
+                            <td class="editable-cell amount" onclick="editCell(this)">R 130,000</td>
+                            <td class="editable-cell amount" onclick="editCell(this)">R 135,000</td>
+                            <td class="editable-cell amount" onclick="editCell(this)">R 35,000</td>
+                            <td class="editable-cell amount" onclick="editCell(this)">R 35,000</td>
+                            <td class="editable-cell amount" onclick="editCell(this)">R 0</td>
+                            <td class="editable-cell amount" onclick="editCell(this)">R 0</td>
+                            <td class="editable-cell amount" onclick="editCell(this)">R 0</td>
+                            <td class="editable-cell amount" onclick="editCell(this)">R 0</td>
+                            <td class="amount" style="background: #c8e6c9;">R 575,000</td>
+                        </tr>
+                        
+                        <tr class="product-row">
+                            <td>TAP Business</td>
+                            <td class="historical-data amount">R 350,000</td>
+                            <td class="ytd-data amount">R 185,000</td>
+                            <td class="editable-cell amount" onclick="editCell(this)">R 65,000</td>
+                            <td class="editable-cell amount" onclick="editCell(this)">R 65,000</td>
+                            <td class="editable-cell amount" onclick="editCell(this)">R 45,000</td>
+                            <td class="editable-cell amount" onclick="editCell(this)">R 45,000</td>
+                            <td class="editable-cell amount" onclick="editCell(this)">R 45,000</td>
+                            <td class="editable-cell amount" onclick="editCell(this)">R 45,000</td>
+                            <td class="editable-cell amount" onclick="editCell(this)">R 45,000</td>
+                            <td class="editable-cell amount" onclick="editCell(this)">R 45,000</td>
+                            <td class="amount" style="background: #c8e6c9;">R 585,000</td>
+                        </tr>
+                        
+                        <tr class="product-row">
+                            <td>Compliance</td>
+                            <td class="historical-data amount">R 135,000</td>
+                            <td class="ytd-data amount">R 85,000</td>
+                            <td class="editable-cell amount" onclick="editCell(this)">R 45,000</td>
+                            <td class="editable-cell amount" onclick="editCell(this)">R 0</td>
+                            <td class="editable-cell amount" onclick="editCell(this)">R 0</td>
+                            <td class="editable-cell amount" onclick="editCell(this)">R 45,000</td>
+                            <td class="editable-cell amount" onclick="editCell(this)">R 0</td>
+                            <td class="editable-cell amount" onclick="editCell(this)">R 0</td>
+                            <td class="editable-cell amount" onclick="editCell(this)">R 45,000</td>
+                            <td class="editable-cell amount" onclick="editCell(this)">R 0</td>
+                            <td class="amount" style="background: #c8e6c9;">R 220,000</td>
+                        </tr>
+                        
+                        <tr class="product-row">
+                            <td>Other Courses</td>
+                            <td class="historical-data amount">R 57,000</td>
+                            <td class="ytd-data amount">R 42,000</td>
+                            <td class="editable-cell amount" onclick="editCell(this)">R 18,000</td>
+                            <td class="editable-cell amount" onclick="editCell(this)">R 0</td>
+                            <td class="editable-cell amount" onclick="editCell(this)">R 18,000</td>
+                            <td class="editable-cell amount" onclick="editCell(this)">R 0</td>
+                            <td class="editable-cell amount" onclick="editCell(this)">R 18,000</td>
+                            <td class="editable-cell amount" onclick="editCell(this)">R 0</td>
+                            <td class="editable-cell amount" onclick="editCell(this)">R 18,000</td>
+                            <td class="editable-cell amount" onclick="editCell(this)">R 0</td>
+                            <td class="amount" style="background: #c8e6c9;">R 114,000</td>
+                        </tr>
+                        
+                        <tr class="total-row">
+                            <td><strong>TOTAL ALL PRODUCTS</strong></td>
+                            <td class="amount"><strong>R 942,000</strong></td>
+                            <td class="amount"><strong>R 552,000</strong></td>
+                            <td class="amount"><strong>R 258,000</strong></td>
+                            <td class="amount"><strong>R 200,000</strong></td>
+                            <td class="amount"><strong>R 98,000</strong></td>
+                            <td class="amount"><strong>R 125,000</strong></td>
+                            <td class="amount"><strong>R 63,000</strong></td>
+                            <td class="amount"><strong>R 45,000</strong></td>
+                            <td class="amount"><strong>R 108,000</strong></td>
+                            <td class="amount"><strong>R 45,000</strong></td>
+                            <td class="amount" style="background: #4CAF50; color: white;"><strong>R 1,494,000</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="note">
+                <strong>Note:</strong> Orange cells are editable - click to modify forecast amounts. Green cells show calculated totals. Historical data (2024) and YTD actuals (Jan-Jun 2025) are locked. Forecast covers Jul 2025 - Feb 2026 to complete the financial year.
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Tab switching functionality
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+                
+                if (this.textContent.trim() !== 'Financials') {
+                    alert(`Switching to ${this.textContent} tab`);
+                }
+            });
+        });
+        
+        // Edit cell functionality
+        function editCell(cell) {
+            const currentValue = cell.textContent.replace('R ', '').replace(',', '');
+            const newValue = prompt('Enter new forecast amount (exclude R):', currentValue);
+            
+            if (newValue !== null && !isNaN(newValue)) {
+                const formattedValue = 'R ' + parseInt(newValue).toLocaleString();
+                cell.textContent = formattedValue;
+                updateTotals();
+            }
+        }
+        
+        // Update totals when forecast values change
+        function updateTotals() {
+            alert('Totals would be recalculated automatically when values are changed');
+        }
+        
+        // Save forecast
+        function saveForecast() {
+            alert('Saving forecast data:\n\n• Updated monthly projections\n• Revised annual targets\n• Audit trail of changes\n• Integration with financial reporting');
+        }
+        
+        // Export functionality
+        function exportForecast() {
+            alert('Exporting forecast to Excel:\n\n• Complete forecast table\n• Charts and graphs\n• Monthly breakdown\n• Year-over-year comparison');
+        }
+        
+        // Navigation
+        function goBack() {
+            alert('Would navigate back to Financials tab');
+        }
+        
+        function goToClient() {
+            alert('Would navigate back to main client detail view');
+        }
+        
+        // Other button handlers
+        document.querySelectorAll('.btn').forEach(btn => {
+            if (!btn.onclick) {
+                btn.addEventListener('click', function() {
+                    alert(`${this.textContent} clicked`);
+                });
+            }
+        });
+    </script>
+</body>
+</html>

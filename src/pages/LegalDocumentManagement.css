@@ -1,0 +1,371 @@
+.legal-document-management {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.legal-document-management .page-header {
+  margin-bottom: 30px;
+}
+
+.legal-document-management .page-header h1 {
+  margin: 0 0 10px 0;
+  color: #12265E;
+}
+
+.legal-document-management .page-description {
+  color: #666;
+  margin: 0;
+}
+
+.document-list-container {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(18, 38, 94, 0.1);
+  overflow: hidden;
+}
+
+.document-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 25px;
+  border-bottom: 1px solid #eee;
+  background: #f8f9fa;
+}
+
+.document-list-header h2 {
+  margin: 0;
+  color: #12265E;
+}
+
+.add-document-btn {
+  padding: 10px 20px;
+  background: #12265E;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.add-document-btn:hover {
+  background: #1a3a7a;
+}
+
+.add-document-form {
+  padding: 20px 25px;
+  border-bottom: 1px solid #eee;
+  background: #fff;
+}
+
+.legal-document-management .form-row {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.legal-document-management .form-group {
+  flex: 1;
+}
+
+.legal-document-management .form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #333;
+}
+
+.legal-document-management .form-group input[type="text"] {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.legal-document-management .form-group input[type="text"]:focus {
+  outline: none;
+  border-color: #12265E;
+}
+
+.legal-document-management .checkbox-row {
+  display: flex;
+  gap: 25px;
+  margin-bottom: 15px;
+}
+
+.legal-document-management .checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #555;
+  cursor: pointer;
+}
+
+.legal-document-management .checkbox-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+}
+
+.legal-document-management .form-actions,
+.legal-document-management .edit-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.legal-document-management .cancel-btn {
+  padding: 8px 16px;
+  background: #f5f5f5;
+  color: #333;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.legal-document-management .cancel-btn:hover {
+  background: #e0e0e0;
+}
+
+.legal-document-management .save-btn {
+  padding: 8px 16px;
+  background: #12265E;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.legal-document-management .save-btn:hover {
+  background: #1a3a7a;
+}
+
+.legal-document-management .save-btn:disabled,
+.legal-document-management .cancel-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.document-list {
+  padding: 15px 25px;
+}
+
+.document-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  border-left: 5px solid #4caf50;
+  transition: all 0.2s;
+}
+
+.document-item.required {
+  border-left-color: #ff9800;
+  background: #fff8e1;
+}
+
+.document-item:hover {
+  background: #f0f0f0;
+}
+
+.document-item.required:hover {
+  background: #fff3e0;
+}
+
+.document-info {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.document-order {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #12265E;
+  color: white;
+  border-radius: 50%;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.document-icon {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #4caf50;
+  color: white;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.document-item.required .document-icon {
+  background: #ff9800;
+}
+
+.document-name {
+  font-weight: 500;
+  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.required-tag {
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.document-key {
+  font-size: 12px;
+  color: #888;
+  font-family: monospace;
+}
+
+.document-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.legal-document-management .order-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #e3f2fd;
+  color: #1976d2;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+  transition: all 0.2s;
+}
+
+.legal-document-management .order-btn:hover:not(:disabled) {
+  background: #bbdefb;
+}
+
+.legal-document-management .order-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.legal-document-management .edit-btn {
+  padding: 6px 14px;
+  background: #fff3e0;
+  color: #e65100;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.legal-document-management .edit-btn:hover:not(:disabled) {
+  background: #ffe0b2;
+}
+
+.legal-document-management .delete-btn {
+  padding: 6px 14px;
+  background: #ffebee;
+  color: #c62828;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.legal-document-management .delete-btn:hover:not(:disabled) {
+  background: #ffcdd2;
+}
+
+.legal-document-management .delete-btn:disabled,
+.legal-document-management .edit-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.edit-form {
+  width: 100%;
+  padding: 10px 0;
+}
+
+.edit-form .form-row {
+  align-items: center;
+}
+
+.edit-form .form-group input[type="text"] {
+  padding: 8px 10px;
+}
+
+.empty-state {
+  padding: 40px 25px;
+  text-align: center;
+  color: #666;
+}
+
+.info-section {
+  padding: 20px 25px;
+  background: #f8f9fa;
+  border-top: 1px solid #eee;
+}
+
+.info-section h3 {
+  margin: 0 0 15px 0;
+  color: #12265E;
+  font-size: 16px;
+}
+
+.info-section ul {
+  margin: 0;
+  padding-left: 20px;
+  color: #666;
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+@media (max-width: 768px) {
+  .legal-document-management .form-row {
+    flex-direction: column;
+  }
+
+  .legal-document-management .checkbox-row {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .document-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+
+  .document-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}

@@ -1,0 +1,182 @@
+================================================================================
+SPECCON CRM - MASTER UNIT TESTING CHECKLIST
+================================================================================
+Version: Multi-Tenant Release
+Date Created: December 2024
+================================================================================
+
+OVERVIEW
+--------
+This folder contains unit testing checklists for all user roles in the Speccon
+CRM system. Each role has specific permissions and access levels that must be
+tested to ensure proper security and functionality.
+
+FOLDER STRUCTURE
+----------------
+Unit Testing/
+├── MASTER_TEST_CHECKLIST.txt (this file)
+├── System Admin/
+│   └── system_admin_tests.txt
+├── Tenant Admin/
+│   └── tenant_admin_tests.txt
+├── Manager/
+│   └── manager_tests.txt
+├── Salesperson/
+│   └── salesperson_tests.txt
+└── Accountant/
+    └── accountant_tests.txt
+
+================================================================================
+ROLE HIERARCHY
+================================================================================
+
+1. SYSTEM ADMIN (isSystemAdmin: true)
+   - Highest level access
+   - Can manage all tenants
+   - Can see data across all tenants
+   - Can create/edit/delete tenants
+   - Test User: admin@speccon.co.za
+
+2. TENANT ADMIN (role: admin, within tenant)
+   - Full access within their tenant
+   - Cannot see other tenants
+   - Cannot access tenant management
+   - Can manage users within tenant
+
+3. MANAGER (role: manager)
+   - Can see all clients in tenant
+   - Can manage users
+   - Can view reports
+   - Cannot access sensitive admin functions
+
+4. SALESPERSON (role: salesperson)
+   - Can only see own clients
+   - Cannot view reports
+   - Cannot access admin functions
+   - Basic CRM functionality only
+
+5. ACCOUNTANT (role: accountant)
+   - Financial focus
+   - Can edit financial data
+   - View-only for most client data
+   - Can manage financial year settings
+
+================================================================================
+CRITICAL TESTING AREAS
+================================================================================
+
+MULTI-TENANCY (NEW)
+-------------------
+[ ] Tenant creation works
+[ ] Tenant migration works (Initialize Speccon Tenant)
+[ ] Users are assigned to correct tenant
+[ ] Data isolation between tenants
+[ ] Tenant indicator displays correctly
+[ ] System admin can switch between tenants
+[ ] Non-system-admins cannot access tenant management
+
+AUTHENTICATION
+--------------
+[ ] Microsoft SSO login
+[ ] Email/password login
+[ ] Role assignment on login
+[ ] Tenant assignment on login
+[ ] Session persistence
+[ ] Logout functionality
+
+DATA SECURITY
+-------------
+[ ] Tenant data isolation
+[ ] Role-based access control
+[ ] Salesperson can only see own clients
+[ ] Manager can see all tenant clients
+[ ] No cross-tenant data leakage
+
+CLIENT MANAGEMENT
+-----------------
+[ ] CRUD operations work per role
+[ ] Locations management
+[ ] Contacts management
+[ ] Interactions logging
+[ ] Follow-up date requirements
+[ ] Products assignment
+
+PIPELINE & FOLLOW-UPS
+---------------------
+[ ] Pipeline status management
+[ ] Pipeline status updates
+[ ] Follow-up task creation
+[ ] Follow-up completion
+[ ] Follow-up date display in headers
+
+FINANCIAL FEATURES
+------------------
+[ ] Dashboard financial editing
+[ ] Client financial editing
+[ ] Financial year settings
+[ ] Reports accuracy
+
+================================================================================
+TESTING PROCEDURE
+================================================================================
+
+1. Create test users for each role in Firebase Authentication
+2. Assign appropriate roles in Firestore users collection
+3. Assign users to tenant (tenantId field)
+4. Set isSystemAdmin: true for system admin user
+5. Login as each user and complete their checklist
+6. Document any issues found
+7. Verify fixes and retest
+
+================================================================================
+TEST USER SETUP
+================================================================================
+
+System Admin:
+- Email: admin@speccon.co.za
+- Role: admin
+- isSystemAdmin: true
+- tenantId: speccon
+
+Tenant Admin:
+- Email: [create test user]
+- Role: admin
+- isSystemAdmin: false
+- tenantId: speccon
+
+Manager:
+- Email: [create test user]
+- Role: manager
+- isSystemAdmin: false
+- tenantId: speccon
+
+Salesperson:
+- Email: [create test user]
+- Role: salesperson
+- isSystemAdmin: false
+- tenantId: speccon
+
+Accountant:
+- Email: [create test user]
+- Role: accountant
+- isSystemAdmin: false
+- tenantId: speccon
+
+================================================================================
+SIGN-OFF
+================================================================================
+
+Testing Completed By: _______________________
+Date Completed: _______________________
+All Tests Passed: [ ] Yes  [ ] No
+
+Issues Remaining:
+1.
+2.
+3.
+
+Approved for Release: [ ] Yes  [ ] No
+Approved By: _______________________
+Date: _______________________
+
+================================================================================

@@ -1,0 +1,143 @@
+.financial-year-end {
+  padding: 20px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.fy-header {
+  margin-bottom: 30px;
+}
+
+.fy-header h1 {
+  color: #12265E;
+  margin-bottom: 10px;
+}
+
+.fy-description {
+  color: #666;
+  font-size: 14px;
+}
+
+.fy-form {
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 30px;
+}
+
+.form-section {
+  margin-bottom: 30px;
+}
+
+.form-section h2 {
+  color: #12265E;
+  font-size: 1.2rem;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #333;
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.form-group small {
+  display: block;
+  margin-top: 5px;
+  color: #666;
+  font-size: 12px;
+}
+
+.form-info {
+  background: #f8f9fa;
+  border-left: 4px solid #12265E;
+  padding: 15px;
+  border-radius: 4px;
+  margin-bottom: 30px;
+}
+
+.form-info h3 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  color: #12265E;
+  font-size: 1rem;
+}
+
+.form-info ul {
+  margin: 0;
+  padding-left: 20px;
+  color: #666;
+  font-size: 14px;
+}
+
+.form-info li {
+  margin-bottom: 5px;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 30px;
+}
+
+.save-btn {
+  background: #12265E;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.save-btn:hover {
+  background: #1a3a7a;
+}
+
+.save-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+/* Error Styling */
+.input-error {
+  border-color: #e53935 !important;
+  background-color: #fff5f5;
+}
+
+.input-error:focus {
+  outline-color: #e53935;
+  box-shadow: 0 0 0 2px rgba(229, 57, 53, 0.2);
+}
+
+.error-text {
+  color: #e53935 !important;
+  font-weight: 500;
+}
+
+
+

@@ -1,0 +1,241 @@
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #12265E 0%, #1a3a7a 100%);
+}
+
+.login-box {
+  background: white;
+  padding: 40px;
+  border-radius: 10px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+}
+
+.login-box h1 {
+  text-align: center;
+  color: #12265E;
+  margin-bottom: 10px;
+  font-size: 2rem;
+}
+
+.login-box h2 {
+  text-align: center;
+  color: #12265E;
+  margin-bottom: 20px;
+  font-size: 1.5rem;
+  font-weight: 400;
+}
+
+.microsoft-login-button {
+  width: 100%;
+  padding: 12px 20px;
+  background-color: #0078d4;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.microsoft-login-button:hover:not(:disabled) {
+  background-color: #106ebe;
+}
+
+.microsoft-login-button:active:not(:disabled) {
+  background-color: #005a9e;
+}
+
+.microsoft-login-button:disabled {
+  background-color: #6c757d;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.microsoft-login-button svg {
+  flex-shrink: 0;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 20px 0;
+  color: #12265E;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid #ddd;
+}
+
+.divider span {
+  padding: 0 15px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.form-group {
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  color: #12265E;
+  font-weight: 500;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  font-size: 1rem;
+  transition: border-color 0.3s ease;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #12265E;
+  box-shadow: 0 0 0 3px rgba(18, 38, 94, 0.1);
+}
+
+.form-group input:disabled {
+  background-color: #f5f5f5;
+  cursor: not-allowed;
+}
+
+.password-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-input-wrapper input {
+  padding-right: 45px;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #12265E;
+  transition: color 0.3s ease;
+}
+
+.password-toggle:hover:not(:disabled) {
+  color: #FFA600;
+}
+
+.password-toggle:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.password-toggle svg {
+  width: 20px;
+  height: 20px;
+}
+
+.email-login-button {
+  width: 100%;
+  padding: 12px;
+  background-color: #12265E;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.email-login-button:hover:not(:disabled) {
+  background-color: #1a3a7a;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(18, 38, 94, 0.3);
+}
+
+.email-login-button:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.email-login-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.error-message {
+  background-color: #fee;
+  color: #c33;
+  padding: 10px;
+  border-radius: 5px;
+  margin-bottom: 20px;
+  border: 1px solid #fcc;
+  text-align: left;
+}
+
+/* Password Change Modal */
+.password-change-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.password-change-modal {
+  background: white;
+  padding: 40px;
+  border-radius: 10px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+}
+
+.password-change-modal h2 {
+  color: #12265E;
+  margin-bottom: 10px;
+  font-size: 1.5rem;
+}
+
+.password-change-modal p {
+  color: #666;
+  margin-bottom: 20px;
+  font-size: 0.95rem;
+}
+
+.password-change-modal .form-group {
+  text-align: left;
+}
+
+.password-change-modal .error-message {
+  margin-bottom: 15px;
+}

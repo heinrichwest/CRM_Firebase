@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forecast Dashboard Wireframe</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border: 2px solid #333;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+        }
+        
+        .header-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .view-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .period-selector {
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            font-size: 12px;
+            border-radius: 3px;
+        }
+        
+        .bulk-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border: 1px solid #333;
+            background: white;
+            cursor: pointer;
+            font-size: 12px;
+            border-radius: 3px;
+        }
+        
+        .btn:hover {
+            background: #f0f0f0;
+        }
+        
+        .btn.primary {
+            background: #4CAF50;
+            color: white;
+            border-color: #4CAF50;
+        }
+        
+        .btn.primary:hover {
+            background: #45a049;
+        }
+        
+        .btn.secondary {
+            background: #2196F3;
+            color: white;
+            border-color: #2196F3;
+        }
+        
+        .btn.secondary:hover {
+            background: #1976D2;
+        }
+        
+        .summary-section {
+            margin-bottom: 25px;
+            padding: 15px;
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 15px;
+        }
+        
+        .summary-card {
+            text-align: center;
+            padding: 10px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+        
+        .summary-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .summary-label {
+            font-size: 10px;
+            color: #666;
+            text-transform: uppercase;
+        }
+        
+        .forecast-table-container {
+            overflow-x: auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        
+        .forecast-table {
+            width: 100%;
+            min-width: 1200px;
+            border-collapse: collapse;
+            font-size: 11px;
+        }
+        
+        .forecast-table th,
+        .forecast-table td {
+            padding: 8px;
+            text-align: center;
+            border: 1px solid #ddd;
+        }
+        
+        .forecast-table th {
+            background: #f0f0f0;
+            font-weight: bold;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        .client-header {
+            background: #e3f2fd !important;
+            font-weight: bold;
+            text-align: left !important;
+            padding-left: 10px !important;
+        }
+        
+        .product-row {
+            background: #fafafa;
+        }
+        
+        .product-row td:first-child {
+            text-align: left;
+            padding-left: 20px;
+            font-weight: 500;
+        }
+        
+        .total-row {
+            background: #e8f5e8 !important;
+            font-weight: bold;
+        }
+        
+        .total-row td:first-child {
+            text-align: left !important;
+            padding-left: 10px !important;
+        }
+        
+        .editable-cell {
+            background: #fff3e0;
+            cursor: pointer;
+            position: relative;
+        }
+        
+        .editable-cell:hover {
+            background: #ffe0b2;
+        }
+        
+        .historical-data {
+            background: #f5f5f5;
+        }
+        
+        .ytd-data {
+            background: #e8f5e8;
+        }
+        
+        .forecast-data {
+            background: #fff3e0;
+        }
+        
+        .amount {
+            font-weight: 500;
+        }
+        
+        .client-checkbox {
+            margin-right: 10px;
+        }
+        
+        .select-all-row {
+            background: #f0f0f0 !important;
+        }
+        
+        .actions-column {
+            min-width: 60px;
+        }
+        
+        .action-btn {
+            padding: 4px 8px;
+            border: 1px solid #ddd;
+            background: white;
+            cursor: pointer;
+            font-size: 10px;
+            margin: 0 2px;
+            border-radius: 2px;
+        }
+        
+        .action-btn:hover {
+            background: #f5f5f5;
+        }
+        
+        .variance-positive {
+            color: #2e7d32;
+            font-weight: bold;
+        }
+        
+        .variance-negative {
+            color: #c62828;
+            font-weight: bold;
+        }
+        
+        .bulk-update-panel {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: white;
+            border: 2px solid #333;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            display: none;
+        }
+        
+        .bulk-update-panel.show {
+            display: block;
+        }
+        
+        .bulk-update-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .bulk-update-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .bulk-input {
+            padding: 6px;
+            border: 1px solid #ccc;
+            font-size: 11px;
+            width: 100px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Sales Forecast Dashboard</h1>
+        </div>
+        
+        <div class="header-controls">
+            <div class="view-controls">
+                <label>Forecast Period:</label>
+                <select class="period-selector" onchange="changePeriod(this.value)">
+                    <option value="2025-2026">FY 2025/2026</option>
+                    <option value="2024-2025">FY 2024/2025</option>
+                    <option value="q3-2025">Q3 2025</option>
+                    <option value="q4-2025">Q4 2025</option>
+                </select>
+                <button class="btn" onclick="refreshData()">Refresh</button>
+            </div>
+            <div class="bulk-actions">
+                <button class="btn secondary" onclick="exportForecast()">Export to Excel</button>
+                <button class="btn" onclick="copyLastYear()">Copy Last Year</button>
+                <button class="btn primary" onclick="saveForecast()">Save All Changes</button>
+            </div>
+        </div>
+        
+        <!-- Summary Section -->
+        <div class="summary-section">
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <div class="summary-value">R 8.2M</div>
+                    <div class="summary-label">Total Forecast</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-value">R 4.8M</div>
+                    <div class="summary-label">YTD Actual</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-value">R 3.4M</div>
+                    <div class="summary-label">Remaining</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-value">24</div>
+                    <div class="summary-label">Active Clients</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-value">87%</div>
+                    <div class="summary-label">Confidence Level</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-value">+15%</div>
+                    <div class="summary-label">vs Last Year</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Forecast Table -->
+        <div class="forecast-table-container">
+            <table class="forecast-table">
+                <thead>
+                    <tr>
+                        <th rowspan="2" style="vertical-align: middle;">
+                            <input type="checkbox" class="client-checkbox" onchange="selectAll(this)"> Client / Product
+                        </th>
+                        <th class="historical-data">Previous Year</th>
+                        <th class="ytd-data">YTD 2025</th>
+                        <th colspan="4" class="forecast-data">Forecast Remaining Months</th>
+                        <th style="background: #4CAF50; color: white;">Full Year</th>
+                        <th rowspan="2" style="vertical-align: middle;">Actions</th>
+                    </tr>
+                    <tr>
+                        <th class="historical-data">2024 Total</th>
+                        <th class="ytd-data">Jan-Jun</th>
+                        <th class="forecast-data">Q3 2025</th>
+                        <th class="forecast-data">Q4 2025</th>
+                        <th class="forecast-data">Q1 2026</th>
+                        <th class="forecast-data">Q2 2026</th>
+                        <th style="background: #4CAF50; color: white;">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Client A -->
+                    <tr class="client-header">
+                        <td colspan="9">
+                            <input type="checkbox" class="client-checkbox" onchange="selectClient(this, 'client-a')"> 
+                            <strong>CLIENT A - Corporate</strong>
+                        </td>
+                    </tr>
+                    <tr class="product-row" data-client="client-a" data-product="learnerships">
+                        <td>Learnerships</td>
+                        <td class="historical-data amount">R 400,000</td>
+                        <td class="ytd-data amount">R 240,000</td>
+                        <td class="editable-cell amount" onclick="editCell(this, 'client-a', 'learnerships', 'q3')">R 180,000</td>
+                        <td class="editable-cell amount" onclick="editCell(this, 'client-a', 'learnerships', 'q4')">R 150,000</td>
+                        <td class="editable-cell amount" onclick="editCell(this, 'client-a', 'learnerships', 'q1')">R 0</td>
+                        <td class="editable-cell amount" onclick="editCell(this, 'client-a', 'learnerships', 'q2')">R 0</td>
+                        <td class="amount" style="background: #c8e6c9;">R 570,000</td>
+                        <td class="actions-column">
+                            <button class="action-btn" onclick="editRow('client-a', 'learnerships')">Edit</button>
+                        </td>
+                    </tr>
+                    <tr class="product-row" data-client="client-a" data-product="tap-business">
+                        <td>TAP Business</td>
+                        <td class="historical-data amount">R 350,000</td>
+                        <td class="ytd-data amount">R 185,000</td>
+                        <td class="editable-cell amount" onclick="editCell(this, 'client-a', 'tap-business', 'q3')">R 200,000</td>
+                        <td class="editable-cell amount" onclick="editCell(this, 'client-a', 'tap-business', 'q4')">R 200,000</td>
+                        <td class="editable-cell amount" onclick="editCell(this, 'client-a', 'tap-business', 'q1')">R 200,000</td>
+                        <td class="editable-cell amount" onclick="editCell(this, 'client-a', 'tap-business', 'q2')">R 200,000</td>
+                        <td class="amount" style="background: #c8e6c9;">R 985,000</td>
+                        <td class="actions-column">
+                            <button class="action-btn" onclick="editRow('client-a', 'tap-business')">Edit</button>
+                        </td>
+                    </tr>
+                    <tr class="product-row" data-client="client-a" data-product="compliance">
+                        <td>Compliance</td>
+                        <td class="historical-data amount">R 135,000</td>
+                        <td class="ytd-data amount">R 85,000</td>
+                        <td class="editable-cell amount" onclick="editCell(this, 'client-a', 'compliance', 'q3')">R 45,000</td>
+                        <td class="editable-cell amount" onclick="editCell(this, 'client-a', 'compliance', 'q4')">R 0</td>
+                        <td class="editable-cell amount" onclick="editCell(this, 'client-a', 'compliance', 'q1')">R 45,000</td>
+                        <td class="editable-cell amount" onclick="editCell(this, 'client-a', 'compliance', 'q2')">R 0</td>
+                        <td class="amount" style="background: #c8e6c9;">R 175,000</td>
+                        <td class="actions-column">
+                            <button class="action-btn" onclick="editRow('client-a', 'compliance')">Edit</button>
+                        </td>
+                    </tr>
+                    
+                    <!-- Client B -->
+                    <tr class="client-header">
+                        <td colspan="9">
+                            <input type="checkbox" class="client-checkbox" onchange="selectClient(this, 'client-b')"> 
+                            <strong>CLIENT B - Manufacturing</strong>
+                        </td>
+                    </tr>
+                    <tr class="product-row" data-client="client-b" data-product="learnerships">
+                        <td>Learnerships</td>
+                        <td class="historical-data amount">R 280,000</td>
+                        <td class="ytd-data amount">R 165,000</td>
+                        <td class="editable-cell amount" onclick="editCell(this, 'client-b', 'learnerships', 'q3')">R 120,000</td>
+                        <td class="editable-cell amount" onclick="editCell(this, 'client-b', 'learnerships', 'q4')">R 100,000</td>
+                        <td class="editable-cell amount" onclick="editCell(this, 'client-b', 'learnerships', 'q1')">R 0</td>
+                        <td class="editable-cell amount" onclick="editCell(this, 'client-b', 'learnerships', 'q2')">R 0</td>
+                        <td class="amount" style="background: #c8e6c9;">R 385,000</td>
+                        <td class="actions-column">
+                            <button class="action-btn" onclick="editRow('client-b', 'learnerships')">Edit</button>
+                        </td>
+                    </tr>
+                    <tr class="product-row" data-client="client-b" data-product="compliance">
+                        <td>Compliance</td>
+                        <td class="historical-data amount">R 95,000</td>
+                        <td class="ytd-data amount">R 58,000</td>
+                        <td class="editable-cell amount" onclick="editCell(this, 'client-b', 'compliance', 'q3')">R 35,000</td>
+                        <td class="editable-cell amount" onclick="editCell(this, 'client-b', 'compliance', 'q4')">R 35,000</td>
+                        <td class="editable-cell amount" onclick="editCell(this, 'client-b', 'compliance', 'q1')">R 35,000</td>
+                        <td class="editable-cell amount" onclick="editCell(this, 'client-b', 'compliance', 'q2')">R 35,000</td>
+                        <td class="amount" style="background: #c8e6c9;">R 198,000</td>
+                        <td class="actions-column">
+                            <button class="action-btn" onclick="editRow('client-b', 'compliance')">Edit</button>
+                        </td>
+                    </tr>
+                    
+                    <!-- Client C -->
+                    <tr class="client-header">
+                        <td colspan="9">
+                            <input type="checkbox" class="client-checkbox" onchange="selectClient(this, 'client-c')"> 
+                            <strong>CLIENT C - Technology</strong>
+                        </td>
+                    </tr>
+                    <tr class="product-row" data-client="client-c" data-product="tap-business">
+                        <td>TAP Business</td>
+                        <td class="historical-data amount">R 420,000</td>
+                        <td class="ytd-data amount">R 250,000</td>
+                        <td class="editable-cell amount" onclick="editCell(this, 'client-c', 'tap-business', 'q3')">R 180,000</td>
+                        <td class="editable-cell amount" onclick="editCell(this, 'client-c', 'tap-business', 'q4')">R 180,000</td>
+                        <td class="editable-cell amount" onclick="editCell(this, 'client-c', 'tap-business', 'q1')">R 180,000</td>
+                        <td class="editable-cell amount" onclick="editCell(this, 'client-c', 'tap-business', 'q2')">R 180,000</td>
+                        <td class="amount" style="background: #c8e6c9;">R 970,000</td>
+                        <td class="actions-column">
+                            <button class="action-btn" onclick="editRow('client-c', 'tap-business')">Edit</button>
+                        </td>
+                    </tr>
+                    <tr class="product-row" data-client="client-c" data-product="other-courses">
+                        <td>Other Courses</td>
+                        <td class="historical-data amount">R 85,000</td>
+                        <td class="ytd-data amount">R 52,000</td>
+                        <td class="editable-cell amount" onclick="editCell(this, 'client-c', 'other-courses', 'q3')">R 25,000</td>
+                        <td class="editable-cell amount" onclick="editCell(this, 'client-c', 'other-courses', 'q4')">R 25,000</td>
+                        <td class="editable-cell amount" onclick="editCell(this, 'client-c', 'other-courses', 'q1')">R 25,000</td>
+                        <td class="editable-cell amount" onclick="editCell(this, 'client-c', 'other-courses', 'q2')">R 25,000</td>
+                        <td class="amount" style="background: #c8e6c9;">R 152,000</td>
+                        <td class="actions-column">
+                            <button class="action-btn" onclick="editRow('client-c', 'other-courses')">Edit</button>
+                        </td>
+                    </tr>
+                    
+                    <!-- Total Row -->
+                    <tr class="total-row">
+                        <td><strong>TOTAL ALL CLIENTS</strong></td>
+                        <td class="amount"><strong>R 1,765,000</strong></td>
+                        <td class="amount"><strong>R 1,035,000</strong></td>
+                        <td class="amount"><strong>R 785,000</strong></td>
+                        <td class="amount"><strong>R 690,000</strong></td>
+                        <td class="amount"><strong>R 485,000</strong></td>
+                        <td class="amount"><strong>R 440,000</strong></td>
+                        <td class="amount" style="background: #4CAF50; color: white;"><strong>R 3,435,000</strong></td>
+                        <td class="actions-column">
+                            <button class="action-btn" onclick="bulkUpdate()">Bulk Edit</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Bulk Update Panel -->
+        <div class="bulk-update-panel" id="bulkUpdatePanel">
+            <div class="bulk-update-title">Bulk Update Selected Clients</div>
+            <div class="bulk-update-controls">
+                <label>Apply %:</label>
+                <input type="number" class="bulk-input" placeholder="10" id="bulkPercentage">
+                <button class="btn" onclick="applyBulkIncrease()">Increase</button>
+                <button class="btn" onclick="applyBulkDecrease()">Decrease</button>
+                <button class="btn secondary" onclick="copyQuarter()">Copy Quarter</button>
+                <button class="btn" onclick="closeBulkPanel()">Close</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let selectedClients = new Set();
+        
+        // Period change
+        function changePeriod(period) {
+            alert(`Switching to forecast period: ${period}\n\nThis would reload data for the selected time period.`);
+        }
+        
+        // Data refresh
+        function refreshData() {
+            alert('Refreshing forecast data from latest actuals and pipeline updates...');
+        }
+        
+        // Export functionality
+        function exportForecast() {
+            alert('Exporting forecast to Excel:\n\n• Client-by-client breakdown\n• Product-level details\n• Quarter-by-quarter projections\n• Variance analysis\n• Summary charts');
+        }
+        
+        // Copy last year data
+        function copyLastYear() {
+            alert('Copy Last Year functionality:\n\n• Apply 2024 figures as baseline\n• Adjust for growth assumptions\n• Update selected clients only\n• Confirm before applying');
+        }
+        
+        // Save all changes
+        function saveForecast() {
+            alert('Saving all forecast changes:\n\n• Update database\n• Create audit trail\n• Notify team of changes\n• Generate summary report');
+        }
+        
+        // Cell editing
+        function editCell(cell, client, product, quarter) {
+            const currentValue = cell.textContent.replace('R ', '').replace(',', '');
+            const newValue = prompt(`Edit ${client.toUpperCase()} - ${product} forecast for ${quarter.toUpperCase()}:`, currentValue);
+            
+            if (newValue !== null && !isNaN(newValue)) {
+                const formattedValue = 'R ' + parseInt(newValue).toLocaleString();
+                cell.textContent = formattedValue;
+                updateTotals();
+                highlightChanges(cell);
+            }
+        }
+        
+        // Highlight changed cells
+        function highlightChanges(cell) {
+            cell.style.backgroundColor = '#ffeb3b';
+            setTimeout(() => {
+                cell.style.backgroundColor = '#fff3e0';
+            }, 1000);
+        }
+        
+        // Update totals
+        function updateTotals() {
+            alert('Totals would be recalculated automatically');
+        }
+        
+        // Select all clients
+        function selectAll(checkbox) {
+            const clientCheckboxes = document.querySelectorAll('input[data-client]');
+            clientCheckboxes.forEach(cb => {
+                cb.checked = checkbox.checked;
+                if (checkbox.checked) {
+                    selectedClients.add(cb.getAttribute('data-client'));
+                } else {
+                    selectedClients.delete(cb.getAttribute('data-client'));
+                }
+            });
+            
+            updateBulkPanel();
+        }
+        
+        // Select individual client
+        function selectClient(checkbox, clientId) {
+            if (checkbox.checked) {
+                selectedClients.add(clientId);
+            } else {
+                selectedClients.delete(clientId);
+            }
+            updateBulkPanel();
+        }
+        
+        // Update bulk panel visibility
+        function updateBulkPanel() {
+            const panel = document.getElementById('bulkUpdatePanel');
+            if (selectedClients.size > 0) {
+                panel.classList.add('show');
+            } else {
+                panel.classList.remove('show');
+            }
+        }
+        
+        // Edit row functionality
+        function editRow(client, product) {
+            alert(`Edit forecast for ${client.toUpperCase()} - ${product}:\n\n• Modify quarterly projections\n• Update assumptions\n• Adjust confidence levels\n• Add notes/comments\n• Set alerts for reviews`);
+        }
+        
+        // Bulk operations
+        function bulkUpdate() {
+            alert('Opening bulk update options:\n\n• Select multiple clients\n• Apply percentage changes\n• Copy data between periods\n• Mass updates across products');
+        }
+        
+        function applyBulkIncrease() {
+            const percentage = document.getElementById('bulkPercentage').value;
+            alert(`Applying ${percentage}% increase to selected clients:\n\n${Array.from(selectedClients).join(', ')}`);
+        }
+        
+        function applyBulkDecrease() {
+            const percentage = document.getElementById('bulkPercentage').value;
+            alert(`Applying ${percentage}% decrease to selected clients:\n\n${Array.from(selectedClients).join(', ')}`);
+        }
+        
+        function copyQuarter() {
+            alert('Copy Quarter functionality:\n\n• Select source quarter\n• Apply to selected clients\n• Adjust for seasonality\n• Confirm changes');
+        }
+        
+        function closeBulkPanel() {
+            selectedClients.clear();
+            document.querySelectorAll('.client-checkbox').forEach(cb => cb.checked = false);
+            updateBulkPanel();
+        }
+    </script>
+</body>
+</html>

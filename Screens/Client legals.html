@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Legal Screen Wireframe</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border: 2px solid #333;
+        }
+        
+        .header {
+            text-align: center;
+            padding: 15px;
+            background: #e8e8e8;
+            border-bottom: 2px solid #333;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #333;
+        }
+        
+        .tab {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            border-right: 1px solid #333;
+            background: #f0f0f0;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        .tab:last-child {
+            border-right: none;
+        }
+        
+        .tab.active {
+            background: white;
+        }
+        
+        .client-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #ccc;
+        }
+        
+        .client-info h2 {
+            font-size: 20px;
+            margin-bottom: 5px;
+        }
+        
+        .client-info p {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border: 1px solid #333;
+            background: white;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .btn:hover {
+            background: #f0f0f0;
+        }
+        
+        .status-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background: #f9f9f9;
+            border-bottom: 1px solid #ccc;
+        }
+        
+        .status-info {
+            display: flex;
+            gap: 30px;
+        }
+        
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .status-label {
+            font-weight: bold;
+            color: #333;
+            font-size: 14px;
+        }
+        
+        .status-value {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .breadcrumb {
+            padding: 10px 20px;
+            background: #f0f0f0;
+            border-bottom: 1px solid #ddd;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .breadcrumb a {
+            color: #2196F3;
+            text-decoration: none;
+        }
+        
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+        
+        .legal-content {
+            padding: 20px;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+        }
+        
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .section-header h3 {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .filter-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .filter-select {
+            padding: 6px 10px;
+            border: 1px solid #ccc;
+            font-size: 12px;
+            border-radius: 3px;
+        }
+        
+        .add-contract-btn {
+            padding: 8px 16px;
+            border: 1px solid #333;
+            background: #4CAF50;
+            color: white;
+            cursor: pointer;
+            font-size: 12px;
+            border-radius: 3px;
+        }
+        
+        .add-contract-btn:hover {
+            background: #45a049;
+        }
+        
+        .contracts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .contract-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .contract-card:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            transform: translateY(-2px);
+        }
+        
+        .contract-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+        
+        .contract-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .contract-type {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+        }
+        
+        .contract-status {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: bold;
+            text-align: center;
+        }
+        
+        .status-active {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+        
+        .status-pending {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+        
+        .status-expired {
+            background: #ffebee;
+            color: #c62828;
+        }
+        
+        .status-draft {
+            background: #f3e5f5;
+            color: #7b1fa2;
+        }
+        
+        .contract-details {
+            margin-bottom: 15px;
+        }
+        
+        .contract-detail-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 12px;
+        }
+        
+        .detail-label {
+            font-weight: 500;
+            color: #666;
+        }
+        
+        .detail-value {
+            color: #333;
+        }
+        
+        .contract-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+        
+        .action-btn {
+            flex: 1;
+            padding: 6px 8px;
+            border: 1px solid #ddd;
+            background: white;
+            cursor: pointer;
+            font-size: 10px;
+            border-radius: 3px;
+            text-align: center;
+        }
+        
+        .action-btn:hover {
+            background: #f5f5f5;
+        }
+        
+        .action-btn.primary {
+            background: #2196F3;
+            color: white;
+            border-color: #2196F3;
+        }
+        
+        .action-btn.primary:hover {
+            background: #1976D2;
+        }
+        
+        .contracts-table {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        
+        .table-header {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr 1.2fr;
+            background: #f0f0f0;
+            font-weight: bold;
+            font-size: 12px;
+            padding: 12px;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .table-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr 1.2fr;
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .table-row:hover {
+            background-color: #f8f8f8;
+        }
+        
+        .table-row:last-child {
+            border-bottom: none;
+        }
+        
+        .view-toggle {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 20px;
+        }
+        
+        .toggle-btn {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            background: white;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .toggle-btn.active {
+            background: #2196F3;
+            color: white;
+            border-color: #2196F3;
+        }
+        
+        .contracts-list {
+            display: none;
+        }
+        
+        .contracts-list.active {
+            display: block;
+        }
+        
+        .contracts-cards.active {
+            display: grid;
+        }
+        
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .stat-card {
+            padding: 15px;
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            font-size: 11px;
+            color: #666;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">Client Detail</div>
+        
+        <div class="tabs">
+            <div class="tab">Products</div>
+            <div class="tab">Financials</div>
+            <div class="tab active">Legal</div>
+        </div>
+        
+        <div class="breadcrumb">
+            <a href="#" onclick="goBack()">← Back to Client Overview</a>
+        </div>
+        
+        <div class="client-header">
+            <div class="client-info">
+                <h2>Client A</h2>
+                <p>Corporate</p>
+            </div>
+            <div class="action-buttons">
+                <button class="btn">Edit</button>
+            </div>
+        </div>
+        
+        <div class="status-section">
+            <div class="status-info">
+                <div class="status-item">
+                    <span class="status-label">Status:</span>
+                    <span class="status-value">Quote sent, waiting for approval</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Next follow up date:</span>
+                    <span class="status-value">07/15/2025</span>
+                </div>
+            </div>
+            <div class="status-actions">
+                <button class="btn">Edit Status & Follow-up</button>
+            </div>
+        </div>
+        
+        <div class="legal-content">
+            <!-- Summary Statistics -->
+            <div class="summary-stats">
+                <div class="stat-card">
+                    <div class="stat-number">8</div>
+                    <div class="stat-label">Total Contracts</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">5</div>
+                    <div class="stat-label">Active</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">2</div>
+                    <div class="stat-label">Expiring Soon</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">1</div>
+                    <div class="stat-label">Pending</div>
+                </div>
+            </div>
+            
+            <!-- Contracts Section -->
+            <div class="section">
+                <div class="section-header">
+                    <h3>Contracts & Legal Documents</h3>
+                    <div class="filter-controls">
+                        <span>Filter by:</span>
+                        <select class="filter-select" onchange="filterContracts(this.value)">
+                            <option value="all">All Types</option>
+                            <option value="sla">Service Level Agreement</option>
+                            <option value="msa">Master Service Agreement</option>
+                            <option value="sow">Statement of Work</option>
+                            <option value="nda">Non-Disclosure Agreement</option>
+                            <option value="amendment">Amendment</option>
+                        </select>
+                        <select class="filter-select" onchange="filterStatus(this.value)">
+                            <option value="all">All Status</option>
+                            <option value="active">Active</option>
+                            <option value="pending">Pending</option>
+                            <option value="expired">Expired</option>
+                            <option value="draft">Draft</option>
+                        </select>
+                        <button class="add-contract-btn" onclick="addContract()">+ Add Contract</button>
+                    </div>
+                </div>
+                
+                <div class="view-toggle">
+                    <button class="toggle-btn active" onclick="toggleView('cards')">Card View</button>
+                    <button class="toggle-btn" onclick="toggleView('list')">List View</button>
+                </div>
+                
+                <!-- Card View -->
+                <div class="contracts-cards active">
+                    <div class="contracts-grid">
+                        <div class="contract-card" onclick="viewContract('SLA-2024-001')">
+                            <div class="contract-header">
+                                <div>
+                                    <div class="contract-title">Learnerships Service Level Agreement</div>
+                                    <div class="contract-type">SLA</div>
+                                </div>
+                                <span class="contract-status status-active">Active</span>
+                            </div>
+                            <div class="contract-details">
+                                <div class="contract-detail-item">
+                                    <span class="detail-label">Contract Number:</span>
+                                    <span class="detail-value">SLA-2024-001</span>
+                                </div>
+                                <div class="contract-detail-item">
+                                    <span class="detail-label">Start Date:</span>
+                                    <span class="detail-value">01/02/2024</span>
+                                </div>
+                                <div class="contract-detail-item">
+                                    <span class="detail-label">End Date:</span>
+                                    <span class="detail-value">31/01/2025</span>
+                                </div>
+                                <div class="contract-detail-item">
+                                    <span class="detail-label">Auto Renewal:</span>
+                                    <span class="detail-value">Yes</span>
+                                </div>
+                                <div class="contract-detail-item">
+                                    <span class="detail-label">Value:</span>
+                                    <span class="detail-value">R 400,000</span>
+                                </div>
+                            </div>
+                            <div class="contract-actions">
+                                <button class="action-btn primary" onclick="event.stopPropagation(); viewContract('SLA-2024-001')">View</button>
+                                <button class="action-btn" onclick="event.stopPropagation(); editContract('SLA-2024-001')">Edit</button>
+                                <button class="action-btn" onclick="event.stopPropagation(); renewContract('SLA-2024-001')">Renew</button>
+                            </div>
+                        </div>
+                        
+                        <div class="contract-card" onclick="viewContract('MSA-2024-002')">
+                            <div class="contract-header">
+                                <div>
+                                    <div class="contract-title">Master Service Agreement</div>
+                                    <div class="contract-type">MSA</div>
+                                </div>
+                                <span class="contract-status status-active">Active</span>
+                            </div>
+                            <div class="contract-details">
+                                <div class="contract-detail-item">
+                                    <span class="detail-label">Contract Number:</span>
+                                    <span class="detail-value">MSA-2024-002</span>
+                                </div>
+                                <div class="contract-detail-item">
+                                    <span class="detail-label">Start Date:</span>
+                                    <span class="detail-value">15/01/2024</span>
+                                </div>
+                                <div class="contract-detail-item">
+                                    <span class="detail-label">End Date:</span>
+                                    <span class="detail-value">14/01/2027</span>
+                                </div>
+                                <div class="contract-detail-item">
+                                    <span class="detail-label">Auto Renewal:</span>
+                                    <span class="detail-value">No</span>
+                                </div>
+                                <div class="contract-detail-item">
+                                    <span class="detail-label">Value:</span>
+                                    <span class="detail-value">R 1,200,000</span>
+                                </div>
+                            </div>
+                            <div class="contract-actions">
+                                <button class="action-btn primary" onclick="event.stopPropagation(); viewContract('MSA-2024-002')">View</button>
+                                <button class="action-btn" onclick="event.stopPropagation(); editContract('MSA-2024-002')">Edit</button>
+                                <button class="action-btn" onclick="event.stopPropagation(); amendContract('MSA-2024-002')">Amend</button>
+                            </div>
+                        </div>
+                        
+                        <div class="contract-card" onclick="viewContract('SOW-2024-003')">
+                            <div class="contract-header">
+                                <div>
+                                    <div class="contract-title">TAP Business Implementation SOW</div>
+                                    <div class="contract-type">SOW</div>
+                                </div>
+                                <span class="contract-status status-active">Active</span>
+                            </div>
+                            <div class="contract-details">
+                                <div class="contract-detail-item">
+                                    <span class="detail-label">Contract Number:</span>
+                                    <span class="detail-value">SOW-2024-003</span>
+                                </div>
+                                <div class="contract-detail-item">
+                                    <span class="detail-label">Start Date:</span>
+                                    <span class="detail-value">01/03/2024</span>
+                                </div>
+                                <div class="contract-detail-item">
+                                    <span class="detail-label">End Date:</span>
+                                    <span class="detail-value">31/08/2025</span>
+                                </div>
+                                <div class="contract-detail-item">
+                                    <span class="detail-label">Auto Renewal:</span>
+                                    <span class="detail-value">No</span>
+                                </div>
+                                <div class="contract-detail-item">
+                                    <span class="detail-label">Value:</span>
+                                    <span class="detail-value">R 585,000</span>
+                                </div>
+                            </div>
+                            <div class="contract-actions">
+                                <button class="action-btn primary" onclick="event.stopPropagation(); viewContract('SOW-2024-003')">View</button>
+                                <button class="action-btn" onclick="event.stopPropagation(); editContract('SOW-2024-003')">Edit</button>
+                                <button class="action-btn" onclick="event.stopPropagation(); extendContract('SOW-2024-003')">Extend</button>
+                            </div>
+                        </div>
+                        
+                        <div class="contract-card" onclick="viewContract('SLA-2025-004')">
+                            <div class="contract-header">
+                                <div>
+                                    <div class="contract-title">Compliance Training SLA</div>
+                                    <div class="contract-type">SLA</div>
+                                </div>
+                                <span class="contract-status status-pending">Pending</span>
+                            </div>
+                            <div class="contract-details">
+                                <div class="contract-detail-item">
+                                    <span class="detail-label">Contract Number:</span>
+                                    <span class="detail-value">SLA-2025-004</span>
+                                </div>
+                                <div class="contract-detail-item">
+                                    <span class="detail-label">Start Date:</span>
+                                    <span class="detail-value">01/07/2025</span>
+                                </div>
+                                <div class="contract-detail-item">
+                                    <span class="detail-label">End Date:</span>
+                                    <span class="detail-value">30/06/2026</span>
+                                </div>
+                                <div class="contract-detail-item">
+                                    <span class="detail-label">Auto Renewal:</span>
+                                    <span class="detail-value">Yes</span>
+                                </div>
+                                <div class="contract-detail-item">
+                                    <span class="detail-label">Value:</span>
+                                    <span class="detail-value">R 220,000</span>
+                                </div>
+                            </div>
+                            <div class="contract-actions">
+                                <button class="action-btn primary" onclick="event.stopPropagation(); viewContract('SLA-2025-004')">View</button>
+                                <button class="action-btn" onclick="event.stopPropagation(); editContract('SLA-2025-004')">Edit</button>
+                                <button class="action-btn" onclick="event.stopPropagation(); approveContract('SLA-2025-004')">Approve</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- List View -->
+                <div class="contracts-list">
+                    <div class="contracts-table">
+                        <div class="table-header">
+                            <div>Contract Details</div>
+                            <div>Type</div>
+                            <div>Start Date</div>
+                            <div>End Date</div>
+                            <div>Value</div>
+                            <div>Status</div>
+                            <div>Actions</div>
+                        </div>
+                        
+                        <div class="table-row" onclick="viewContract('SLA-2024-001')">
+                            <div>SLA-2024-001 - Learnerships Service Level Agreement</div>
+                            <div>SLA</div>
+                            <div>01/02/2024</div>
+                            <div>31/01/2025</div>
+                            <div>R 400,000</div>
+                            <div><span class="contract-status status-active">Active</span></div>
+                            <div>
+                                <button class="action-btn primary" onclick="event.stopPropagation(); viewContract('SLA-2024-001')">View</button>
+                            </div>
+                        </div>
+                        
+                        <div class="table-row" onclick="viewContract('MSA-2024-002')">
+                            <div>MSA-2024-002 - Master Service Agreement</div>
+                            <div>MSA</div>
+                            <div>15/01/2024</div>
+                            <div>14/01/2027</div>
+                            <div>R 1,200,000</div>
+                            <div><span class="contract-status status-active">Active</span></div>
+                            <div>
+                                <button class="action-btn primary" onclick="event.stopPropagation(); viewContract('MSA-2024-002')">View</button>
+                            </div>
+                        </div>
+                        
+                        <div class="table-row" onclick="viewContract('SOW-2024-003')">
+                            <div>SOW-2024-003 - TAP Business Implementation SOW</div>
+                            <div>SOW</div>
+                            <div>01/03/2024</div>
+                            <div>31/08/2025</div>
+                            <div>R 585,000</div>
+                            <div><span class="contract-status status-active">Active</span></div>
+                            <div>
+                                <button class="action-btn primary" onclick="event.stopPropagation(); viewContract('SOW-2024-003')">View</button>
+                            </div>
+                        </div>
+                        
+                        <div class="table-row" onclick="viewContract('SLA-2025-004')">
+                            <div>SLA-2025-004 - Compliance Training SLA</div>
+                            <div>SLA</div>
+                            <div>01/07/2025</div>
+                            <div>30/06/2026</div>
+                            <div>R 220,000</div>
+                            <div><span class="contract-status status-pending">Pending</span></div>
+                            <div>
+                                <button class="action-btn primary" onclick="event.stopPropagation(); viewContract('SLA-2025-004')">View</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Tab switching functionality
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+                
+                if (this.textContent.trim() !== 'Legal') {
+                    alert(`Switching to ${this.textContent} tab`);
+                }
+            });
+        });
+        
+        // View toggle functionality
+        function toggleView(view) {
+            const cardView = document.querySelector('.contracts-cards');
+            const listView = document.querySelector('.contracts-list');
+            const cardBtn = document.querySelector('.toggle-btn:first-child');
+            const listBtn = document.querySelector('.toggle-btn:last-child');
+            
+            if (view === 'cards') {
+                cardView.classList.add('active');
+                listView.classList.remove('active');
+                cardBtn.classList.add('active');
+                listBtn.classList.remove('active');
+            } else {
+                cardView.classList.remove('active');
+                listView.classList.add('active');
+                cardBtn.classList.remove('active');
+                listBtn.classList.add('active');
+            }
+        }
+        
+        // Contract functions
+        function filterContracts(type) {
+            alert(`Filtering contracts by type: ${type}`);
+        }
+        
+        function filterStatus(status) {
+            alert(`Filtering contracts by status: ${status}`);
+        }
+        
+        function addContract() {
+            alert('Opening new contract creation form:\n\n• Contract type selection\n• Template library\n• Client-specific terms\n• Document upload\n• Digital signature workflow');
+        }
+        
+        function viewContract(contractId) {
+            alert(`Opening contract details: ${contractId}\n\nWould show:\n• Full contract document\n• Terms and conditions\n• Amendment history\n• Renewal dates\n• Performance metrics\n• Digital signatures`);
+        }
+        
+        function editContract(contractId) {
+            alert(`Opening contract editor: ${contractId}\n\nWould allow:\n• Term modifications\n• Value adjustments\n• Date changes\n• Adding amendments\n• Version control`);
+        }
+        
+        function renewContract(contractId) {
+            alert(`Starting renewal process: ${contractId}\n\nWould initiate:\n• Renewal notification\n• Term review\n• Rate negotiation\n• Updated contract generation\n• Approval workflow`);
+        }
+        
+        function amendContract(contractId) {
+            alert(`Creating amendment: ${contractId}\n\nWould allow:\n• Scope changes\n• Commercial adjustments\n• Term extensions\n• Service modifications\n• Legal review process`);
+        }
+        
+        function extendContract(contractId) {
+            alert(`Extending contract: ${contractId}\n\nWould process:\n• Duration extension\n• Rate adjustments\n• Performance reviews\n• Stakeholder approvals`);
+        }
+        
+        function approveContract(contractId) {
+            alert(`Approving contract: ${contractId}\n\nWould trigger:\n• Legal review completion\n• Stakeholder sign-offs\n• Contract activation\n• System notifications`);
+        }
+        
+        // Navigation
+        function goBack() {
+            alert('Would navigate back to main client detail view');
+        }
+        
+        // Other button handlers
+        document.querySelectorAll('.btn').forEach(btn => {
+            if (!btn.onclick) {
+                btn.addEventListener('click', function() {
+                    alert(`${this.textContent} clicked`);
+                });
+            }
+        });
+    </script>
+</body>
+</html>

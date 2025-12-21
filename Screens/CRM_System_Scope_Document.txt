@@ -1,0 +1,808 @@
+================================================================================
+                    SPECCON HOLDINGS CRM SYSTEM
+                    COMPLETE SCOPE DOCUMENT
+================================================================================
+
+Document Version: 1.0
+Date: December 2025
+Based on: 14 PNG screen designs + 4 HTML wireframes
+
+================================================================================
+                         EXECUTIVE SUMMARY
+================================================================================
+
+The CRM system is designed for SpecCon Holdings, a training and education
+services company operating in South Africa (currency: ZAR/Rand). The system
+manages B2B client relationships across corporate clients and schools, with
+products including Learnerships, TAP Business programs, Compliance training,
+and Other Courses.
+
+================================================================================
+                    SECTION 1: SCREEN DESIGNS INVENTORY
+================================================================================
+
+1.1 MAIN NAVIGATION SCREENS
+--------------------------------------------------------------------------------
+Screen                  | Purpose
+------------------------|-------------------------------------------------------
+Dashboard               | Central hub with Financial Dashboard, Sales Pipeline,
+                        | Messages widget, Feedback widget
+Clients                 | Client list management with pipeline summary
+Deals                   | Sales pipeline/deals management
+Messages                | Internal messaging/ticketing system
+
+1.2 CLIENT DETAIL SCREENS (TABBED INTERFACE)
+--------------------------------------------------------------------------------
+Tab                     | Sub-screens
+------------------------|-------------------------------------------------------
+Overview                | Client info, financial summary, recent quotes/invoices
+Products                | Training products & services by category
+Financials              | Quotes, Invoices, Revenue Forecast
+Legal                   | Contracts & legal documents management
+
+1.3 ADMINISTRATIVE SCREENS
+--------------------------------------------------------------------------------
+Screen                      | Purpose
+----------------------------|---------------------------------------------------
+Edit Financial Dashboard    | Configure dashboard settings, product lines, forecasts
+Edit Client                 | Client information form with activity log
+Create/View Message         | Full message composition and viewing
+Sales Forecast Dashboard    | Company-wide forecast management
+
+================================================================================
+                    SECTION 2: COMPLETE FEATURE LIST
+================================================================================
+
+2.1 DASHBOARD MODULE
+--------------------------------------------------------------------------------
+
+FINANCIAL DASHBOARD:
+- Revenue table by product line (Learnerships, TAP Business, Compliance,
+  Other Courses)
+- Time period columns: Previous Year, YTD, Forecast, Full Year Forecast
+- Edit mode for configuring dashboard settings
+- Currency: South African Rand (R)
+
+SALES PIPELINE WIDGET:
+- Kanban-style pipeline stages
+- Add/Remove/Edit entry controls
+- Quick-view deal cards with company name and details
+
+MESSAGES WIDGET:
+- Unread/In Progress/Assigned/Resolved message counts
+- Quick access to message detail
+
+FEEDBACK WIDGET:
+- Recent client feedback list
+- Status tracking (Follow-Up required)
+- Quick view action
+
+--------------------------------------------------------------------------------
+
+2.2 CLIENT MANAGEMENT MODULE
+--------------------------------------------------------------------------------
+
+CLIENT LIST SCREEN:
+
+Sales Pipeline Summary:
+- Lead Generation count
+- Contact Made count
+- Needs Assessment count
+- Deal Closed count
+
+Client Overview:
+- Total Clients
+- Active
+- Pending
+- Prospects
+- YTD Revenue
+- Pipeline Value
+
+Client Table:
+- Client Name
+- Type (Corporate/School/Program)
+- Status (Active/Pending/Prospect/Inactive)
+- Last Contact date
+- YTD Revenue
+- Filter by: Status, Client Type, Last Contact
+- Search functionality
+- Add Client button
+- Export Data button
+
+CLIENT DETAIL - OVERVIEW:
+
+Header Section:
+- Client Name, Type (Corporate Client)
+- Status bar: Current Status, Next Follow-up Date, Assigned Sales Person
+- Edit button for status/follow-up
+
+Financial Overview (Year):
+- YTD Invoices
+- YTD Paid
+- Outstanding
+- Year End Forecast
+
+Recent Quotes Table:
+- Quote number
+- Product
+- Date
+- Amount
+- Validity
+- Status (Pending/Sent/Approved/Rejected)
+
+Recent Invoices Table:
+- Invoice number
+- Product
+- Issue date
+- Amount
+- Due date
+- Status (Paid/Pending/Unpaid)
+
+Navigation Buttons:
+- Back
+- Legal
+- Products
+- Message
+- Edit Client
+
+EDIT CLIENT SCREEN:
+
+Information Section:
+- Client Name
+- Legal Name
+- Address
+- Country
+- Financial Year End
+- SharePoint Folder Link
+- Primary Contact
+- Contact Email
+
+Activity Log (Automatic):
+- Chronological activity entries
+- Edit capability on entries
+- Filter: All Activities
+
+--------------------------------------------------------------------------------
+
+2.3 PRODUCTS MODULE (CLIENT-LEVEL)
+--------------------------------------------------------------------------------
+
+TRAINING PRODUCTS & SERVICES SCREEN:
+
+Product Categories:
+1. Learnerships
+2. TAP Business
+3. Compliance
+4. Other Courses
+
+Per Product Item:
+- Deal Number / Program Name
+- Start Date
+- Duration
+- Learners enrolled / Users / Courses
+- Status badge (Active/Starting Soon/In Progress)
+- View Reports button per category
+- + Add Product button
+
+Product Reports by Category:
+
+Learnerships:
+- Learner progress tracking
+- Completion rates
+- Skills assessment results
+- Workplace integration metrics
+- SETA compliance reports
+
+TAP Business:
+- Training progress dashboard
+- Competency assessments
+- Business impact metrics
+- ROI analysis
+- Participant feedback
+
+Compliance:
+- Regulatory compliance status
+- Training completion rates
+- Certification tracking
+- Risk assessment reports
+- Audit readiness metrics
+
+Other Courses:
+- Course completion statistics
+- Learning outcomes analysis
+- Training effectiveness metrics
+- Participant satisfaction scores
+- Custom course analytics
+
+--------------------------------------------------------------------------------
+
+2.4 FINANCIALS MODULE (CLIENT-LEVEL)
+--------------------------------------------------------------------------------
+
+FINANCIAL DASHBOARD SCREEN:
+
+Summary Cards:
+- YTD Invoices
+- YTD Paid
+- Outstanding
+- Year End Forecast
+
+Quotes Table:
+- Quote Details
+- Product
+- Date
+- Amount
+- Valid Until
+- Status
+- Filter by: Product, Status
+- New Quote button
+
+Invoices Table (Xero Integration):
+- Invoice Details
+- Product
+- Issue Date
+- Amount
+- Due Date
+- Status
+- Filter by: Product, Status
+- New Invoice button
+- Update Forecast button
+
+REVENUE FORECAST SCREEN:
+
+Period: Financial Year (e.g., 2025/2026)
+
+Forecast Table:
+- Rows: Product lines (Learnerships, TAP Business, Compliance, Other Courses)
+- Columns: Previous Year Total, YTD Actual, Monthly forecasts (8 months),
+  Full Year Total
+- Editable forecast cells (orange highlighting)
+- Locked historical/YTD data
+- Auto-calculated totals (green highlighting)
+
+Actions:
+- Export to Excel button
+- Save Forecast button
+
+Notes section explaining editable vs locked cells
+
+--------------------------------------------------------------------------------
+
+2.5 LEGAL/CONTRACTS MODULE (CLIENT-LEVEL)
+--------------------------------------------------------------------------------
+
+CONTRACTS & LEGAL DOCUMENTS SCREEN:
+
+Summary Statistics:
+- Total Contracts
+- Active
+- Expiring Soon
+- Pending
+
+Contract Types:
+- SLA (Service Level Agreement)
+- MSA (Master Service Agreement)
+- SOW (Statement of Work)
+- NDA (Non-Disclosure Agreement)
+- Amendment
+
+View Options:
+- Card View
+- List View
+
+Filters:
+- By Type
+- By Status (Active/Pending/Expired/Draft)
+
+Contract Card Display:
+- Contract Title
+- Type badge
+- Status badge (Active/Pending/Expired/Draft)
+- Contract Number
+- Start Date
+- End Date
+- Auto Renewal (Yes/No)
+- Value
+- Actions: View, Edit, Renew/Amend/Extend/Approve
+
++ Add Contract button
+
+CONTRACT ACTIONS:
+
+View:
+- Full contract document
+- Terms and conditions
+- Amendment history
+- Renewal dates
+- Performance metrics
+- Digital signatures
+
+Edit:
+- Term modifications
+- Value adjustments
+- Date changes
+- Adding amendments
+- Version control
+
+Renew:
+- Renewal notification
+- Term review
+- Rate negotiation
+- Updated contract generation
+- Approval workflow
+
+Amend:
+- Scope changes
+- Commercial adjustments
+- Term extensions
+- Service modifications
+- Legal review process
+
+Extend:
+- Duration extension
+- Rate adjustments
+- Performance reviews
+- Stakeholder approvals
+
+Approve:
+- Legal review completion
+- Stakeholder sign-offs
+- Contract activation
+- System notifications
+
+--------------------------------------------------------------------------------
+
+2.6 SALES PIPELINE MODULE
+--------------------------------------------------------------------------------
+
+PIPELINE MANAGEMENT SCREEN:
+
+Key Metrics Header:
+- Pipeline Value (e.g., R 2.85M)
+- Active Deals count
+- Win Rate %
+- Avg Days in pipeline
+
+Summary Cards:
+- YTD Revenue
+- Pipeline Value
+- Pending Revenue
+- Avg Deal Size
+
+Filter Controls:
+- By Stage
+- Search companies
+
+Action Buttons:
+- + Add Deal
+- Bulk Actions
+- Export
+
+PIPELINE STAGES (6 STAGES):
+
+Stage 1 - Lead Generation:
+- Company
+- Contact
+- Details
+- Value
+- Priority
+- Last Contact
+- Actions (View, Next Stage)
+
+Stage 2 - Initial Contact:
+- Company
+- Contact
+- Details
+- Value
+- Priority
+- Next Action
+- Actions (View, Next Stage)
+
+Stage 3 - Needs Assessment:
+- Company
+- Contact
+- Details
+- Value
+- Status (In Progress/Ready)
+- Next Action
+- Actions (View, Next Stage)
+
+Stage 4 - Proposal Sent:
+- Company
+- Contact
+- Proposal Type
+- Value
+- Sent Date
+- Follow-up
+- Actions (View, Follow Up)
+
+Stage 5 - Negotiation:
+- Company
+- Contact
+- Details
+- Value
+- Status (Active/Pending)
+- Next Action
+- Actions (View, Negotiate)
+
+Stage 6 - Deal Closed:
+- Company
+- Contact
+- Program
+- Value
+- Close Date
+- Status (Active/Starting)
+- Actions (View, Manage)
+
+Per-Stage Features:
+- Deal count badge per stage
+- Message button (for follow-up)
+- View and Next Stage buttons
+
+--------------------------------------------------------------------------------
+
+2.7 MESSAGES/SUPPORT TICKETING MODULE
+--------------------------------------------------------------------------------
+
+MY MESSAGES DASHBOARD:
+
+Status Tabs with Counts:
+- Unread
+- Assigned
+- In Progress
+- Resolved
+- Archived
+
+Features:
+- Search messages
+- Filter buttons: Drafts, All Status, All Recipients
+
+Message List:
+- Subject
+- Recipient (To:)
+- Date/Time
+- Preview text
+- Status badge
+- Actions: Reply, View Details, Mark as Read, Close Ticket, Archive
+
+CREATE NEW MESSAGE SCREEN:
+
+Form Fields:
+- Subject field (required)
+- Message To (required): Dropdown (Facilitator, Assessor, CLO)
+- Additional Recipient (CC): Optional
+- Message Type: Support Request, etc.
+- Message Importance: Normal, High, etc.
+
+Rich Text Editor:
+- Font formatting (Bold, Italic, Underline)
+- Font family selection
+- Font size
+- Lists (bullet, numbered)
+- Alignment options
+- Text styling
+- Links
+- Images
+- Emojis
+
+Task Assignment Section:
+- Task description
+- Assigned To dropdown
+- Due Date picker
+- Add/Remove Task buttons
+
+Attachment Section:
+- Drag and drop upload
+- File list with remove option
+- Max file size: 10MB
+- Supported formats: PDF, DOC, DOCX, JPG, PNG
+
+Actions:
+- Discard
+- Save Draft
+- Send Message
+
+--------------------------------------------------------------------------------
+
+2.8 CLIENT FEEDBACK MODULE
+--------------------------------------------------------------------------------
+
+CLIENT FEEDBACK DETAIL SCREEN:
+
+Summary Metrics:
+- Average Rating
+- Response Rate %
+- Pending Reviews
+- Satisfaction Rate %
+- Trend indicators (+/- this month/week)
+
+Feedback Analytics:
+- Ratings by product type (Learnerships, TAP Business, Compliance)
+
+Filter Controls:
+- Program Type
+- Status
+- Date Range
+- Follow-up Status
+
+Action Buttons:
+- Export Report
+- View Trends
+
+Feedback Cards (per client):
+- Company Name
+- Program
+- Module
+- Completion Date
+- Overall rating badge (Excellent/Good/etc.)
+- Rating breakdown:
+  * Overall Satisfaction (1-5 stars)
+  * Content Quality (1-5 stars)
+  * Trainer Effectiveness / Venue & Facilities (1-5 stars)
+- Client Comments section
+- Actions: Message, Export
+
+--------------------------------------------------------------------------------
+
+2.9 SALES FORECAST DASHBOARD (COMPANY-WIDE)
+--------------------------------------------------------------------------------
+
+FORECAST DASHBOARD SCREEN:
+
+Header Controls:
+- Forecast Period selector (FY 2025/2026, quarters)
+- Refresh button
+
+Bulk Actions:
+- Export to Excel
+- Copy Last Year
+- Save All Changes
+
+Summary Section:
+- Total Forecast
+- YTD Actual
+- Remaining
+- Active Clients count
+- Confidence Level %
+- vs Last Year %
+
+Forecast Table:
+- Columns: Client/Product, Previous Year, YTD, Quarterly forecasts
+  (Q3, Q4, Q1, Q2), Full Year Total
+- Rows: Grouped by client, then by product line
+- Client checkbox for bulk selection
+- Editable forecast cells
+- Per-row Edit button
+- Total row with Bulk Edit option
+
+Bulk Update Panel (floating):
+- Apply % increase/decrease
+- Copy Quarter functionality
+- Apply to selected clients
+
+--------------------------------------------------------------------------------
+
+2.10 EDIT FINANCIAL DASHBOARD (ADMIN)
+--------------------------------------------------------------------------------
+
+CONFIGURATION SCREEN:
+
+General Settings:
+- Dashboard Title
+- Currency (South African Rand)
+- Financial Year Start (month picker)
+- Update Frequency (Weekly, etc.)
+
+Product Lines & Forecasts:
+Per product line card:
+- Status indicator (Active - green, Warning - yellow)
+- Previous Year value
+- YTD value
+- Forecast value
+- Target fields
+- Active/Remove toggles
+
+Advanced Settings:
+- Growth Rate Assumption %
+- Risk Factor %
+- Seasonal Adjustment (Low/Medium/High)
+- Alert Threshold %
+
+Notes & Comments field
+
+Actions:
+- Save Changes
+- Preview
+- Reset to Defaults
+- Add New
+- Cancel
+
+================================================================================
+                SECTION 3: DATA ENTITIES & RELATIONSHIPS
+================================================================================
+
+CORE ENTITIES:
+--------------------------------------------------------------------------------
+
+CLIENT
+- Name
+- Legal Name
+- Type (Corporate/School/Program)
+- Status
+- Address
+- Country
+- Financial Year End
+- SharePoint Link
+- Primary Contact
+- Email
+
+CONTACT
+- Name
+- Title
+- Email
+- Phone
+- Client (FK)
+
+DEAL
+- Company
+- Contact
+- Value
+- Priority
+- Stage
+- Details
+- Last Contact
+- Next Action
+- Proposal Type
+- Close Date
+
+PRODUCT
+- Category (Learnership/TAP/Compliance/Other)
+- Deal Number
+- Start Date
+- Duration
+- Learners/Users
+- Status
+
+QUOTE
+- Quote Number
+- Client (FK)
+- Product
+- Date
+- Amount
+- Valid Until
+- Status
+
+INVOICE
+- Invoice Number
+- Client (FK)
+- Product
+- Issue Date
+- Amount
+- Due Date
+- Status
+
+CONTRACT
+- Contract Number
+- Client (FK)
+- Type (SLA/MSA/SOW/NDA)
+- Title
+- Start Date
+- End Date
+- Auto Renewal
+- Value
+- Status
+
+FORECAST
+- Client (FK)
+- Product
+- Period
+- Previous Year
+- YTD
+- Monthly amounts (8)
+- Total
+
+MESSAGE
+- Subject
+- From
+- To
+- CC
+- Type
+- Importance
+- Body
+- Status
+- Tasks
+- Attachments
+
+TASK
+- Description
+- Assigned To
+- Due Date
+- Status
+- Message (FK)
+
+FEEDBACK
+- Client (FK)
+- Program
+- Module
+- Date
+- Overall Rating
+- Content Rating
+- Trainer Rating
+- Comments
+
+ACTIVITY LOG
+- Client (FK)
+- Action
+- Description
+- User
+- Timestamp
+
+================================================================================
+                       SECTION 4: INTEGRATIONS
+================================================================================
+
+System              | Purpose
+--------------------|------------------------------------------------------------
+Xero                | Invoice management, financial data sync
+SharePoint          | Document storage (client folders)
+Excel Export        | Forecasts, reports, client data
+
+================================================================================
+                    SECTION 5: USER ROLES (IMPLIED)
+================================================================================
+
+Role                | Responsibilities
+--------------------|------------------------------------------------------------
+Sales Person        | Assigned to clients, manages pipeline
+Facilitator         | Receives support messages
+Assessor            | Receives support messages
+CLO                 | Receives support messages
+Admin               | Dashboard configuration, system settings
+
+================================================================================
+                    SECTION 6: SUMMARY STATISTICS
+================================================================================
+
+Category                    | Count
+----------------------------|---------------------------
+Total Screens               | 18 unique screen designs
+Main Modules                | 8 (Dashboard, Clients, Deals, Messages,
+                            |    Products, Financials, Legal, Feedback)
+Pipeline Stages             | 6 stages
+Product Categories          | 4 (Learnerships, TAP Business,
+                            |    Compliance, Other Courses)
+Contract Types              | 5 (SLA, MSA, SOW, NDA, Amendment)
+Message Statuses            | 5 (Unread, Assigned, In Progress,
+                            |    Resolved, Archived)
+Client Statuses             | 4 (Active, Pending, Prospect, Inactive)
+Client Types                | 3 (Corporate, School, Program)
+
+================================================================================
+                 SECTION 7: KEY BUSINESS PROCESSES
+================================================================================
+
+1. LEAD-TO-DEAL PIPELINE:
+   Lead Generation -> Initial Contact -> Needs Assessment ->
+   Proposal Sent -> Negotiation -> Deal Closed
+
+2. QUOTE-TO-INVOICE FLOW:
+   Create Quote -> Send -> Approval -> Generate Invoice -> Track Payment
+
+3. CONTRACT LIFECYCLE:
+   Draft -> Pending Approval -> Active -> Expiring Soon -> Renewal/Amendment
+
+4. FORECASTING PROCESS:
+   Historical data -> YTD actuals -> Monthly forecasting -> Variance analysis
+
+5. CLIENT FEEDBACK LOOP:
+   Training completion -> Feedback collection -> Rating analysis ->
+   Follow-up actions
+
+================================================================================
+                         END OF DOCUMENT
+================================================================================
+
+This comprehensive scope covers all screens, features, and functionality
+visible in the design files. The system is a robust B2B CRM tailored for
+training/education services with strong financial tracking, pipeline
+management, and client relationship features.
