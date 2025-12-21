@@ -8,6 +8,7 @@ import {
   getClientFinancialsByYear,
   saveClientFinancial
 } from '../services/firestoreService'
+import ClientDealsModal from '../components/ClientDealsModal'
 import './EditFinancial.css'
 
 const EditFinancial = () => {
@@ -16,14 +17,16 @@ const EditFinancial = () => {
   const tenantId = getTenantId()
 
   const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
   const [clients, setClients] = useState([])
   const [financialYear, setFinancialYear] = useState('')
   const [fySettings, setFySettings] = useState(null)
   const [fyMonths, setFyMonths] = useState([])
   const [clientFinancials, setClientFinancials] = useState([])
-  const [editedData, setEditedData] = useState({})
   const [searchTerm, setSearchTerm] = useState('')
+
+  // Modal state
+  const [showDealsModal, setShowDealsModal] = useState(false)
+  const [selectedClient, setSelectedClient] = useState(null)
 
   // Permissions
   const userRole = (userData?.role || '').toLowerCase().replace(/[\s_-]/g, '')
@@ -63,49 +66,37 @@ const EditFinancial = () => {
     }
   }
 
-  const handleSaveAll = async () => {
+  const formatCurrency = (value) => {
+    if (!value || value === 0) return 'R 0'
+    return `R ${parseFloat(value).toLocaleString('en-ZA', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+  }
+
+  const handleEditDeals = (clientId) => {
+    const client = clients.find(c => c.id === clientId)
+    const clientFinancialsData = clientFinancials.filter(cf => cf.clientId === clientId)
+
+    setSelectedClient({
+      id: clientId,
+      name: client?.name || 'Unknown Client',
+      financials: clientFinancialsData
+    })
+    setShowDealsModal(true)
+  }
+
+  const handleSaveDeals = async (updatedFinancials) => {
     try {
-      setSaving(true)
-
-      for (const [key, value] of Object.entries(editedData)) {
-        const [clientId, productLine, field] = key.split('|')
-
-        // Find or create client financial record
-        let clientFinancial = clientFinancials.find(
-          cf => cf.clientId === clientId && cf.productLine === productLine
-        )
-
-        if (!clientFinancial) {
-          const client = clients.find(c => c.id === clientId)
-          clientFinancial = {
-            clientId,
-            clientName: client?.name || '',
-            productLine,
-            months: {},
-            comments: ''
-          }
-        }
-
-        // Update the field
-        if (field === 'comments') {
-          clientFinancial.comments = value
-        } else {
-          // It's a month field
-          if (!clientFinancial.months) clientFinancial.months = {}
-          clientFinancial.months[field] = parseFloat(value) || 0
-        }
-
-        // Save to Firestore
-        const client = clients.find(c => c.id === clientId)
+      // Save each product line's deals and monthly data
+      for (const [productLine, data] of Object.entries(updatedFinancials)) {
         await saveClientFinancial(
-          clientId,
-          client?.name || '',
+          selectedClient.id,
+          selectedClient.name,
           financialYear,
           productLine,
           {
-            months: clientFinancial.months || {},
-            comments: clientFinancial.comments || '',
-            history: clientFinancial.history || {}
+            dealDetails: data.dealDetails || [],
+            months: data.months || {},
+            comments: data.comments || '',
+            history: {}
           },
           'system'
         )
@@ -113,59 +104,11 @@ const EditFinancial = () => {
 
       // Reload data
       await loadData()
-      setEditedData({})
-      alert('Changes saved successfully!')
+      alert('Deals saved successfully!')
     } catch (error) {
-      console.error('Error saving:', error)
-      alert('Error saving changes')
-    } finally {
-      setSaving(false)
+      console.error('Error saving deals:', error)
+      alert('Error saving deals')
     }
-  }
-
-  const handleCellChange = (clientId, productLine, field, value) => {
-    const key = `${clientId}|${productLine}|${field}`
-    setEditedData(prev => ({
-      ...prev,
-      [key]: value
-    }))
-  }
-
-  const getCellValue = (clientId, productLine, field) => {
-    const key = `${clientId}|${productLine}|${field}`
-    if (editedData[key] !== undefined) return editedData[key]
-
-    const cf = clientFinancials.find(
-      c => c.clientId === clientId && c.productLine === productLine
-    )
-
-    if (field === 'comments') return cf?.comments || ''
-    return cf?.months?.[field] || ''
-  }
-
-  const getHistoryValue = (clientId, productLine, historyField) => {
-    const cf = clientFinancials.find(
-      c => c.clientId === clientId && c.productLine === productLine
-    )
-    return cf?.history?.[historyField] || 0
-  }
-
-  const formatCurrency = (value) => {
-    if (!value || value === 0) return 'R 0'
-    return `R ${parseFloat(value).toLocaleString('en-ZA', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
-  }
-
-  const calculateFullYearForecast = (clientId, productLine) => {
-    const ytd = getHistoryValue(clientId, productLine, 'currentYearYTD')
-    let forecastTotal = 0
-
-    fyMonths.filter(m => m.isRemaining).forEach(m => {
-      const monthKey = `${m.year}-${String(m.calendarMonth + 1).padStart(2, '0')}`
-      const value = getCellValue(clientId, productLine, monthKey)
-      forecastTotal += parseFloat(value) || 0
-    })
-
-    return ytd + forecastTotal
   }
 
   // Filter clients based on user role
@@ -205,32 +148,43 @@ const EditFinancial = () => {
     return []
   }, [clients, canViewAll, isSalesperson, userData, userRole])
 
-  // Group data by client
-  const tableData = []
-  visibleClients.forEach(client => {
-    // Get all product lines for this client
-    const productLines = [...new Set(
-      clientFinancials
-        .filter(cf => cf.clientId === client.id)
-        .map(cf => cf.productLine || 'Other')
-    )]
 
-    if (productLines.length === 0) {
-      productLines.push('Other') // At least one row per client
-    }
+  // Aggregate all product lines per client into a single row
+  const aggregateClientTotals = (clientId) => {
+    const clientFinancialsForClient = clientFinancials.filter(cf => cf.clientId === clientId)
 
-    productLines.forEach(pl => {
-      tableData.push({
-        clientId: client.id,
-        clientName: client.name,
-        productLine: pl
+    let ytdTotal = 0
+    let forecastTotal = 0
+    let fullYearTotal = 0
+
+    clientFinancialsForClient.forEach(cf => {
+      // Sum YTD actuals
+      ytdTotal += cf.history?.currentYearYTD || 0
+
+      // Sum forecast months
+      fyMonths.filter(m => m.isRemaining).forEach(m => {
+        const monthKey = `${m.year}-${String(m.calendarMonth + 1).padStart(2, '0')}`
+        forecastTotal += cf.months?.[monthKey] || 0
       })
     })
+
+    fullYearTotal = ytdTotal + forecastTotal
+
+    return { ytdTotal, forecastTotal, fullYearTotal }
+  }
+
+  // Create client-level data (one row per client, aggregated)
+  const clientTableData = visibleClients.map(client => {
+    const totals = aggregateClientTotals(client.id)
+    return {
+      clientId: client.id,
+      clientName: client.name,
+      ...totals
+    }
   })
 
-  const filteredData = tableData.filter(row =>
-    row.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    row.productLine.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredClientData = clientTableData.filter(row =>
+    row.clientName.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   const remainingMonths = fyMonths.filter(m => m.isRemaining)
@@ -246,24 +200,17 @@ const EditFinancial = () => {
         <div>
           <h1>Client Financial Forecasting</h1>
           <p className="subtitle">
-            Edit detailed forecasts per client and product line, using current year YTD and remaining months
+            Manage client deals and forecasts by clicking Edit Deals for each client
           </p>
         </div>
         <div className="header-actions">
           <input
             type="text"
-            placeholder="Search clients or product lines..."
+            placeholder="Search clients..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="search-input"
           />
-          <button
-            onClick={handleSaveAll}
-            disabled={saving || Object.keys(editedData).length === 0}
-            className="save-all-btn"
-          >
-            {saving ? 'Saving...' : 'Save All Changes'}
-          </button>
         </div>
       </div>
 
@@ -271,75 +218,67 @@ const EditFinancial = () => {
         <table className="financial-table">
           <thead>
             <tr>
-              <th className="client-column">Client / Product Line</th>
-              <th className="history-year">FY {parseInt(financialYear) - 3}</th>
-              <th className="history-year">FY {parseInt(financialYear) - 2}</th>
-              <th className="history-year">FY {parseInt(financialYear) - 1}</th>
+              <th className="client-column">Client Name</th>
               <th className="ytd-column">
                 YTD Actual<br />
                 <span className="header-subtext">{reportingMonth}</span>
               </th>
-              {remainingMonths.map(m => (
-                <th key={`${m.year}-${m.calendarMonth}`} className="month-header">
-                  {m.name}
-                </th>
-              ))}
+              <th className="forecast-column">
+                Forecast Total<br />
+                <span className="header-subtext">Remaining Months</span>
+              </th>
               <th className="total-column">
                 Full Year Forecast<br />
                 <span className="header-subtext">{financialYear}</span>
               </th>
-              <th className="comments-column">Comments</th>
+              <th className="action-column">Action</th>
             </tr>
           </thead>
           <tbody>
-            {filteredData.map((row, index) => {
-              const fy2022 = getHistoryValue(row.clientId, row.productLine, 'yearMinus3')
-              const fy2023 = getHistoryValue(row.clientId, row.productLine, 'yearMinus2')
-              const fy2024 = getHistoryValue(row.clientId, row.productLine, 'yearMinus1')
-              const ytd = getHistoryValue(row.clientId, row.productLine, 'currentYearYTD')
-              const fullYearForecast = calculateFullYearForecast(row.clientId, row.productLine)
-
+            {filteredClientData.map((row) => {
               return (
-                <tr key={`${row.clientId}-${row.productLine}`}>
+                <tr key={row.clientId}>
                   <td className="client-cell">{row.clientName}</td>
-                  <td className="history-cell">{formatCurrency(fy2022)}</td>
-                  <td className="history-cell">{formatCurrency(fy2023)}</td>
-                  <td className="history-cell">{formatCurrency(fy2024)}</td>
-                  <td className="ytd-cell">{formatCurrency(ytd)}</td>
-                  {remainingMonths.map(m => {
-                    const monthKey = `${m.year}-${String(m.calendarMonth + 1).padStart(2, '0')}`
-                    const value = getCellValue(row.clientId, row.productLine, monthKey)
-                    return (
-                      <td key={monthKey} className="month-cell">{formatCurrency(value)}</td>
-                    )
-                  })}
-                  <td className="total-cell">{formatCurrency(fullYearForecast)}</td>
-                  <td className="comments-cell"></td>
+                  <td className="ytd-cell">{formatCurrency(row.ytdTotal)}</td>
+                  <td className="forecast-cell">{formatCurrency(row.forecastTotal)}</td>
+                  <td className="total-cell">{formatCurrency(row.fullYearTotal)}</td>
+                  <td className="action-cell">
+                    <button
+                      className="edit-deals-btn"
+                      onClick={() => handleEditDeals(row.clientId)}
+                    >
+                      Edit Deals
+                    </button>
+                  </td>
                 </tr>
               )
             })}
             <tr className="totals-row">
               <td><strong>TOTALS</strong></td>
-              <td><strong>{formatCurrency(filteredData.reduce((sum, row) => sum + (getHistoryValue(row.clientId, row.productLine, 'yearMinus3') || 0), 0))}</strong></td>
-              <td><strong>{formatCurrency(filteredData.reduce((sum, row) => sum + (getHistoryValue(row.clientId, row.productLine, 'yearMinus2') || 0), 0))}</strong></td>
-              <td><strong>{formatCurrency(filteredData.reduce((sum, row) => sum + (getHistoryValue(row.clientId, row.productLine, 'yearMinus1') || 0), 0))}</strong></td>
-              <td><strong>{formatCurrency(filteredData.reduce((sum, row) => sum + (getHistoryValue(row.clientId, row.productLine, 'currentYearYTD') || 0), 0))}</strong></td>
-              {remainingMonths.map(m => {
-                const monthKey = `${m.year}-${String(m.calendarMonth + 1).padStart(2, '0')}`
-                const total = filteredData.reduce((sum, row) => sum + (parseFloat(getCellValue(row.clientId, row.productLine, monthKey)) || 0), 0)
-                return <td key={monthKey}><strong>{formatCurrency(total)}</strong></td>
-              })}
-              <td><strong>{formatCurrency(filteredData.reduce((sum, row) => sum + calculateFullYearForecast(row.clientId, row.productLine), 0))}</strong></td>
+              <td><strong>{formatCurrency(filteredClientData.reduce((sum, row) => sum + row.ytdTotal, 0))}</strong></td>
+              <td><strong>{formatCurrency(filteredClientData.reduce((sum, row) => sum + row.forecastTotal, 0))}</strong></td>
+              <td><strong>{formatCurrency(filteredClientData.reduce((sum, row) => sum + row.fullYearTotal, 0))}</strong></td>
               <td></td>
             </tr>
           </tbody>
         </table>
       </div>
 
-      {Object.keys(editedData).length > 0 && (
-        <div className="unsaved-changes-banner">
-          You have {Object.keys(editedData).length} unsaved change(s). Click "Save All Changes" to save.
-        </div>
+      {/* Client Deals Modal */}
+      {showDealsModal && selectedClient && (
+        <ClientDealsModal
+          isOpen={showDealsModal}
+          onClose={() => {
+            setShowDealsModal(false)
+            setSelectedClient(null)
+          }}
+          clientId={selectedClient.id}
+          clientName={selectedClient.name}
+          clientFinancials={selectedClient.financials}
+          fyMonths={fyMonths}
+          financialYear={financialYear}
+          onSave={handleSaveDeals}
+        />
       )}
     </div>
   )
