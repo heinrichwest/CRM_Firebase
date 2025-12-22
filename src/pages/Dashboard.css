@@ -545,19 +545,44 @@
   font-style: italic;
 }
 
-/* Small Follow-Up Alert Tile above dashboard grid (matches design pill) */
-.followup-alert-tile {
+/* Compact alert chips row at top of dashboard */
+.dashboard-alert-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.dashboard-alert-tile {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 18px;
+  padding: 8px 16px;
   border-radius: 999px;
-  background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
-  border: 1px solid #ffb74d;
-  margin-bottom: 16px;
+  background: #f5f7ff;
+  border: 1px solid #c5cae9;
   cursor: pointer;
   font-size: 0.9rem;
-  box-shadow: 0 2px 8px rgba(18, 38, 94, 0.12);
+  box-shadow: 0 1px 4px rgba(18, 38, 94, 0.1);
+}
+
+.dashboard-alert-tile .alert-text {
+  color: #12265E;
+}
+
+.dashboard-alert-tile.alert-followup {
+  background: #fff3e0;
+  border-color: #ffb74d;
+}
+
+.dashboard-alert-tile.alert-pipeline {
+  background: #e3f2fd;
+  border-color: #64b5f6;
+}
+
+.dashboard-alert-tile.alert-alloc {
+  background: #f3e5f5;
+  border-color: #ba68c8;
 }
 
 .alert-content {

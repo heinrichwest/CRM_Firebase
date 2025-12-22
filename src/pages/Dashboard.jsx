@@ -1014,99 +1014,77 @@ const Dashboard = () => {
     <div className="dashboard">
       <h1>Dashboard {!isManager && <span className="dashboard-subtitle">(My Performance)</span>}</h1>
 
-      {/* Manager Stats - Unallocated Clients */}
-      {isManager && (allocationStats.unallocatedSalesPerson > 0 || allocationStats.unallocatedSkillsPartner > 0) && (
-        <div className="manager-alert-bar">
-          <div className="alert-content">
-            <span className="alert-icon">⚠️</span>
-            <span className="alert-text">
-              {allocationStats.unallocatedSalesPerson > 0 && (
-                <span
-                  className="alert-stat clickable"
-                  onClick={() => {
-                    setAllocationFilter('sales')
-                    setShowAllocationModal(true)
-                  }}
-                >
-                  <strong>{allocationStats.unallocatedSalesPerson}</strong> clients without sales person
-                </span>
-              )}
-              {allocationStats.unallocatedSalesPerson > 0 && allocationStats.unallocatedSkillsPartner > 0 && ' | '}
-              {allocationStats.unallocatedSkillsPartner > 0 && (
-                <span
-                  className="alert-stat clickable"
-                  onClick={() => {
-                    setAllocationFilter('skills')
-                    setShowAllocationModal(true)
-                  }}
-                >
-                  <strong>{allocationStats.unallocatedSkillsPartner}</strong> clients without skills partner
-                </span>
-              )}
-            </span>
-          </div>
-          <button
-            className="allocate-btn"
+      {/* Compact alert chips row at top */}
+      <div className="dashboard-alert-row">
+        {isManager && (allocationStats.unallocatedSalesPerson > 0 || allocationStats.unallocatedSkillsPartner > 0) && (
+          <div
+            className="dashboard-alert-tile alert-alloc"
             onClick={() => {
               setAllocationFilter('all')
               setShowAllocationModal(true)
             }}
           >
-            Manage Allocations
-          </button>
-        </div>
-      )}
+            <span className="alert-icon">⚠️</span>
+            <span className="alert-text">
+              {allocationStats.unallocatedSalesPerson > 0 && (
+                <span className="alert-stat">
+                  <strong>{allocationStats.unallocatedSalesPerson}</strong> clients without sales person
+                </span>
+              )}
+              {allocationStats.unallocatedSalesPerson > 0 && allocationStats.unallocatedSkillsPartner > 0 && ' | '}
+              {allocationStats.unallocatedSkillsPartner > 0 && (
+                <span className="alert-stat">
+                  <strong>{allocationStats.unallocatedSkillsPartner}</strong> clients without skills partner
+                </span>
+              )}
+            </span>
+          </div>
+        )}
 
-      {/* Pipeline Warning Bar - for all users with clients missing pipeline */}
-      {getClientsWithoutPipeline().length > 0 && (
-        <div className="manager-alert-bar pipeline-alert">
-          <div className="alert-content">
+        {getClientsWithoutPipeline().length > 0 && (
+          <div
+            className="dashboard-alert-tile alert-pipeline"
+            onClick={() => setShowPipelineModal(true)}
+          >
             <span className="alert-icon">📊</span>
             <span className="alert-text">
-              <span
-                className="alert-stat clickable"
-                onClick={() => setShowPipelineModal(true)}
-              >
+              <span className="alert-stat">
                 <strong>{getClientsWithoutPipeline().length}</strong> {isManager ? 'clients' : 'of your clients'} without pipeline status
               </span>
             </span>
           </div>
-          <button
-            className="allocate-btn"
-            onClick={() => setShowPipelineModal(true)}
-          >
-            Manage Pipeline
-          </button>
-        </div>
-      )}
+        )}
 
-      {/* Small Follow-Up Warning Tile */}
-      {followUpStats.needsAttention > 0 && (
-        <div className="followup-alert-tile" onClick={() => openFollowUpModal('needs-attention')}>
-          <span className="alert-icon">📅</span>
-          <span className="alert-text">
-            {followUpStats.overdue > 0 && (
-              <span className="alert-stat">
-                <strong>{followUpStats.overdue}</strong> overdue follow-ups
-              </span>
-            )}
-            {followUpStats.overdue > 0 && followUpStats.noFollowUp > 0 && ' | '}
-            {followUpStats.noFollowUp > 0 && (
-              <span className="alert-stat">
-                <strong>{followUpStats.noFollowUp}</strong> {isManager ? 'clients' : 'of your clients'} without follow-up
-              </span>
-            )}
-            {followUpStats.dueToday > 0 && (
-              <>
-                {' | '}
+        {followUpStats.needsAttention > 0 && (
+          <div
+            className="dashboard-alert-tile alert-followup"
+            onClick={() => openFollowUpModal('needs-attention')}
+          >
+            <span className="alert-icon">📅</span>
+            <span className="alert-text">
+              {followUpStats.overdue > 0 && (
                 <span className="alert-stat">
-                  <strong>{followUpStats.dueToday}</strong> due today
+                  <strong>{followUpStats.overdue}</strong> overdue follow-ups
                 </span>
-              </>
-            )}
-          </span>
-        </div>
-      )}
+              )}
+              {followUpStats.overdue > 0 && followUpStats.noFollowUp > 0 && ' | '}
+              {followUpStats.noFollowUp > 0 && (
+                <span className="alert-stat">
+                  <strong>{followUpStats.noFollowUp}</strong> {isManager ? 'clients' : 'of your clients'} without follow-up
+                </span>
+              )}
+              {followUpStats.dueToday > 0 && (
+                <>
+                  {' | '}
+                  <span className="alert-stat">
+                    <strong>{followUpStats.dueToday}</strong> due today
+                  </span>
+                </>
+              )}
+            </span>
+          </div>
+        )}
+      </div>
 
       <div className="dashboard-grid">
         {/* Financial Dashboard */}
