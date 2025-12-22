@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import {
-  getMessages,
-  getFeedback,
   getClientsWithAllocationStatus,
   getSkillsPartners,
   assignSalesPersonToClient,
@@ -25,12 +23,17 @@ import './Dashboard.css'
 
 const Dashboard = () => {
   const [financialData, setFinancialData] = useState({
-    learnerships: { previousYear: 0, ytd: 0, forecast: 0, fullYear: 0, budget: 0 },
-    tapBusiness: { previousYear: 0, ytd: 0, forecast: 0, fullYear: 0, budget: 0 },
-    compliance: { previousYear: 0, ytd: 0, forecast: 0, fullYear: 0, budget: 0 },
-    otherCourses: { previousYear: 0, ytd: 0, forecast: 0, fullYear: 0, budget: 0 },
-    other: { previousYear: 0, ytd: 0, forecast: 0, fullYear: 0, budget: 0 }
+    fy2022: 0,
+    fy2023: 0,
+    fy2024: 0,
+    ytd: 0,
+    forecast: 0,
+    fullYear: 0,
+    budget: 0
   })
+  const [remainingMonths, setRemainingMonths] = useState([])
+  const [reportingMonth, setReportingMonth] = useState('')
+  const [monthForecasts, setMonthForecasts] = useState({})
   const [pipelineStats, setPipelineStats] = useState({
     leadGeneration: 0,
     initialContact: 0,
@@ -45,11 +48,12 @@ const Dashboard = () => {
     inProgress: 0,
     resolved: 0
   })
-  const [recentFeedback, setRecentFeedback] = useState([])
+  const [upcomingTasks, setUpcomingTasks] = useState([])
   const [loading, setLoading] = useState(true)
 
   // Manager-specific state
   const [clients, setClients] = useState([])
+  const [filteredClientsForDashboard, setFilteredClientsForDashboard] = useState([])
   const [users, setUsers] = useState([])
   const [skillsPartners, setSkillsPartners] = useState([])
   const [allocationStats, setAllocationStats] = useState({
@@ -201,15 +205,94 @@ const Dashboard = () => {
     setFollowUpFilter(filter)
     setShowFollowUpModal(true)
     try {
-      const salespersonId = isManager ? null : currentUserId
-      let clientsData = await getClientsForFollowUpManagement(salespersonId, filter)
-      // For team managers, filter to accessible users
-      if (isTeamManager() && !isSalesHead() && !isSystemAdmin) {
-        clientsData = clientsData.filter(c =>
-          accessibleUserIds.includes(c.assignedSalesPerson) ||
-          accessibleUserIds.includes(c.createdBy)
-        )
+      // Use the same filtered clients from dashboard to ensure consistency
+      let clientsData = filteredClientsForDashboard || []
+      
+      // If we don't have filtered clients yet, fetch them
+      if (clientsData.length === 0) {
+        const salespersonId = isManager ? null : currentUserId
+        clientsData = await getClientsForFollowUpManagement(salespersonId, filter)
+        // For team managers, filter to accessible users
+        if (isTeamManager() && !isSalesHead() && !isSystemAdmin) {
+          clientsData = clientsData.filter(c =>
+            accessibleUserIds.includes(c.assignedSalesPerson) ||
+            accessibleUserIds.includes(c.createdBy)
+          )
+        }
+      } else {
+        // Filter the already-filtered clients by follow-up status
+        const now = new Date()
+        now.setHours(0, 0, 0, 0)
+        const tomorrow = new Date(now)
+        tomorrow.setDate(tomorrow.getDate() + 1)
+        const nextWeek = new Date(now)
+        nextWeek.setDate(nextWeek.getDate() + 7)
+
+        clientsData = clientsData.map(client => {
+          // Calculate follow-up status
+          let followUpStatus = 'none'
+          let daysUntilFollowUp = null
+
+          if (client.nextFollowUpDate) {
+            const followUpDate = client.nextFollowUpDate.toDate
+              ? client.nextFollowUpDate.toDate()
+              : new Date(client.nextFollowUpDate)
+            followUpDate.setHours(0, 0, 0, 0)
+
+            const diffTime = followUpDate - now
+            daysUntilFollowUp = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+
+            if (followUpDate < now) {
+              followUpStatus = 'overdue'
+            } else if (followUpDate.getTime() === now.getTime()) {
+              followUpStatus = 'due-today'
+            } else if (followUpDate < nextWeek) {
+              followUpStatus = 'due-this-week'
+            } else {
+              followUpStatus = 'scheduled'
+            }
+          }
+
+          return {
+            ...client,
+            followUpStatus,
+            daysUntilFollowUp
+          }
+        })
+
+        // Exclude won/lost clients
+        clientsData = clientsData.filter(client => {
+          const status = (client.pipelineStatus || '').toLowerCase()
+          return status !== 'won' && status !== 'lost'
+        })
+
+        // Apply filter
+        if (filter === 'no-followup') {
+          clientsData = clientsData.filter(c => c.followUpStatus === 'none')
+        } else if (filter === 'overdue') {
+          clientsData = clientsData.filter(c => c.followUpStatus === 'overdue')
+        } else if (filter === 'due-today') {
+          clientsData = clientsData.filter(c => c.followUpStatus === 'due-today')
+        } else if (filter === 'due-this-week') {
+          clientsData = clientsData.filter(c => c.followUpStatus === 'due-this-week')
+        } else if (filter === 'needs-attention') {
+          clientsData = clientsData.filter(c => c.followUpStatus === 'none' || c.followUpStatus === 'overdue')
+        }
+
+        // Sort: overdue first, then no follow-up, then by date
+        clientsData.sort((a, b) => {
+          const statusOrder = { 'overdue': 0, 'none': 1, 'due-today': 2, 'due-this-week': 3, 'scheduled': 4 }
+          const orderDiff = statusOrder[a.followUpStatus] - statusOrder[b.followUpStatus]
+          if (orderDiff !== 0) return orderDiff
+
+          // Within same status, sort by days until follow-up (or name if no date)
+          if (a.daysUntilFollowUp !== null && b.daysUntilFollowUp !== null) {
+            return a.daysUntilFollowUp - b.daysUntilFollowUp
+          }
+          return (a.name || '').localeCompare(b.name || '')
+        })
       }
+      
       setFollowUpClients(clientsData)
     } catch (error) {
       console.error('Error loading follow-up clients:', error)
@@ -219,15 +302,94 @@ const Dashboard = () => {
   const handleFollowUpFilterChange = async (newFilter) => {
     setFollowUpFilter(newFilter)
     try {
-      const salespersonId = isManager ? null : currentUserId
-      let clientsData = await getClientsForFollowUpManagement(salespersonId, newFilter)
-      // For team managers, filter to accessible users
-      if (isTeamManager() && !isSalesHead() && !isSystemAdmin) {
-        clientsData = clientsData.filter(c =>
-          accessibleUserIds.includes(c.assignedSalesPerson) ||
-          accessibleUserIds.includes(c.createdBy)
-        )
+      // Use the same filtered clients from dashboard to ensure consistency
+      let clientsData = filteredClientsForDashboard || []
+      
+      // If we don't have filtered clients yet, fetch them
+      if (clientsData.length === 0) {
+        const salespersonId = isManager ? null : currentUserId
+        clientsData = await getClientsForFollowUpManagement(salespersonId, newFilter)
+        // For team managers, filter to accessible users
+        if (isTeamManager() && !isSalesHead() && !isSystemAdmin) {
+          clientsData = clientsData.filter(c =>
+            accessibleUserIds.includes(c.assignedSalesPerson) ||
+            accessibleUserIds.includes(c.createdBy)
+          )
+        }
+      } else {
+        // Filter the already-filtered clients by follow-up status
+        const now = new Date()
+        now.setHours(0, 0, 0, 0)
+        const tomorrow = new Date(now)
+        tomorrow.setDate(tomorrow.getDate() + 1)
+        const nextWeek = new Date(now)
+        nextWeek.setDate(nextWeek.getDate() + 7)
+
+        clientsData = clientsData.map(client => {
+          // Calculate follow-up status
+          let followUpStatus = 'none'
+          let daysUntilFollowUp = null
+
+          if (client.nextFollowUpDate) {
+            const followUpDate = client.nextFollowUpDate.toDate
+              ? client.nextFollowUpDate.toDate()
+              : new Date(client.nextFollowUpDate)
+            followUpDate.setHours(0, 0, 0, 0)
+
+            const diffTime = followUpDate - now
+            daysUntilFollowUp = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+
+            if (followUpDate < now) {
+              followUpStatus = 'overdue'
+            } else if (followUpDate.getTime() === now.getTime()) {
+              followUpStatus = 'due-today'
+            } else if (followUpDate < nextWeek) {
+              followUpStatus = 'due-this-week'
+            } else {
+              followUpStatus = 'scheduled'
+            }
+          }
+
+          return {
+            ...client,
+            followUpStatus,
+            daysUntilFollowUp
+          }
+        })
+
+        // Exclude won/lost clients
+        clientsData = clientsData.filter(client => {
+          const status = (client.pipelineStatus || '').toLowerCase()
+          return status !== 'won' && status !== 'lost'
+        })
+
+        // Apply filter
+        if (newFilter === 'no-followup') {
+          clientsData = clientsData.filter(c => c.followUpStatus === 'none')
+        } else if (newFilter === 'overdue') {
+          clientsData = clientsData.filter(c => c.followUpStatus === 'overdue')
+        } else if (newFilter === 'due-today') {
+          clientsData = clientsData.filter(c => c.followUpStatus === 'due-today')
+        } else if (newFilter === 'due-this-week') {
+          clientsData = clientsData.filter(c => c.followUpStatus === 'due-this-week')
+        } else if (newFilter === 'needs-attention') {
+          clientsData = clientsData.filter(c => c.followUpStatus === 'none' || c.followUpStatus === 'overdue')
+        }
+
+        // Sort: overdue first, then no follow-up, then by date
+        clientsData.sort((a, b) => {
+          const statusOrder = { 'overdue': 0, 'none': 1, 'due-today': 2, 'due-this-week': 3, 'scheduled': 4 }
+          const orderDiff = statusOrder[a.followUpStatus] - statusOrder[b.followUpStatus]
+          if (orderDiff !== 0) return orderDiff
+
+          // Within same status, sort by days until follow-up (or name if no date)
+          if (a.daysUntilFollowUp !== null && b.daysUntilFollowUp !== null) {
+            return a.daysUntilFollowUp - b.daysUntilFollowUp
+          }
+          return (a.name || '').localeCompare(b.name || '')
+        })
       }
+      
       setFollowUpClients(clientsData)
     } catch (error) {
       console.error('Error loading follow-up clients:', error)
@@ -298,9 +460,13 @@ const Dashboard = () => {
         ...pipelineStatusesData
       ])
 
+      // Load users for task display
+      const filterTenantId = isSystemAdmin ? null : tenantId
+      const usersData = await getUsersByTenant(filterTenantId)
+      setUsers(usersData)
+
       // Determine which clients to include based on user's role
       // First filter by tenant
-      const filterTenantId = isSystemAdmin ? null : tenantId
       const allClientsData = await getClientsWithAllocationStatus(filterTenantId)
       let filteredClientsData = allClientsData
 
@@ -326,12 +492,22 @@ const Dashboard = () => {
 
       // Calculate financial year info for YTD months
       const financialYearInfo = await calculateFinancialYearMonths(tenantId)
-      const ytdMonthNames = (financialYearInfo?.ytdMonths || []).map(m => m.name)
+      const ytdMonths = financialYearInfo?.ytdMonths || []
+      const ytdMonthNames = ytdMonths.map(m => m.name)
+      const remainingMonthsData = financialYearInfo?.remainingMonths || []
+      setRemainingMonths(remainingMonthsData.slice(0, 4)) // Show first 4 remaining months
+      setReportingMonth(fySettings.reportingMonth || '')
+
+      // Calculate historical years
+      const fy2 = calculateFinancialYear(currentFY, -2) // e.g., 2022/2023
+      const fy3 = calculateFinancialYear(currentFY, -3) // e.g., 2021/2022
 
       // Load uploaded financial data from accountant uploads
-      const [uploadedYtdActual, uploadedYtd1, uploadedBudget] = await Promise.all([
+      const [uploadedYtdActual, uploadedYtd1, uploadedYtd2, uploadedYtd3, uploadedBudget] = await Promise.all([
         getFinancialData(UPLOAD_TYPES.YTD_ACTUAL, currentFY, tenantId),
         getFinancialData(UPLOAD_TYPES.YTD_1, fy1, tenantId),
+        getFinancialData(UPLOAD_TYPES.YTD_2, fy2, tenantId),
+        getFinancialData(UPLOAD_TYPES.YTD_3, fy3, tenantId),
         getFinancialData(UPLOAD_TYPES.BUDGET, currentFY, tenantId)
       ])
 
@@ -368,32 +544,63 @@ const Dashboard = () => {
         })
       }
 
-      // Filter uploaded data to accessible clients
+        // Filter uploaded data to accessible clients
       const myYtdActual = filterUploadedByClients(uploadedYtdActual)
       const myYtd1 = filterUploadedByClients(uploadedYtd1)
+      const myYtd2 = filterUploadedByClients(uploadedYtd2)
+      const myYtd3 = filterUploadedByClients(uploadedYtd3)
       const myBudget = filterUploadedByClients(uploadedBudget)
 
-      // Helper to calculate YTD from monthly data
+      // Helper to calculate YTD from monthly data (using Month 1, Month 2, etc. format)
       const calculateYtdFromMonthly = (records) => {
         let total = 0
         records.forEach(record => {
           const monthData = record.monthlyData || record.monthlyValues || {}
-          ytdMonthNames.forEach(monthName => {
-            total += monthData[monthName] || 0
-          })
+          if (ytdMonths.length > 0) {
+            // Use fyMonthNumber to get "Month 1", "Month 2", etc.
+            ytdMonths.forEach(month => {
+              const monthKey = `Month ${month.fyMonthNumber}`
+              const value = monthData[monthKey] || 0
+              total += parseFloat(value) || 0
+            })
+          } else {
+            // Fallback to month names if fyMonthNumber not available
+            ytdMonthNames.forEach(monthName => {
+              total += parseFloat(monthData[monthName] || 0) || 0
+            })
+          }
         })
         return total
       }
 
-      // Helper to calculate full year from monthly data
+      // Helper to calculate full year from monthly data (for budget - sum all monthly values)
       const calculateFullYearFromMonthly = (records) => {
         let total = 0
-        const allMonths = (financialYearInfo?.months || []).map(m => m.name)
         records.forEach(record => {
           const monthData = record.monthlyData || record.monthlyValues || {}
-          allMonths.forEach(monthName => {
-            total += monthData[monthName] || 0
-          })
+          // Sum all monthly values (budget uses "Month 1", "Month 2", etc. format)
+          if (monthData && typeof monthData === 'object') {
+            const monthlyTotal = Object.values(monthData).reduce((sum, value) => {
+              return sum + (parseFloat(value) || 0)
+            }, 0)
+            total += monthlyTotal || (record.total || 0)
+          } else {
+            total += (record.total || 0)
+          }
+        })
+        return total
+      }
+
+      // Helper to calculate historical year total from monthly data
+      const calculateHistoricalYearTotal = (records) => {
+        let total = 0
+        records.forEach(record => {
+          const monthData = record.monthlyData || record.monthlyValues || {}
+          // Sum all monthly values
+          const monthlyTotal = Object.values(monthData).reduce((sum, value) => {
+            return sum + (parseFloat(value) || 0)
+          }, 0)
+          total += monthlyTotal || (record.total || 0)
         })
         return total
       }
@@ -429,93 +636,66 @@ const Dashboard = () => {
           return parseInt(fyStr) === currentFinancialYear
         })
 
-        // Aggregate YTD, Previous Year, and Budget from UPLOADED data by product line
-        const productLineGroups = {}
-        myYtdActual.forEach(record => {
-          const productLine = (record.productLine || '').toLowerCase().replace(/\s+/g, '')
-          if (legacyProductLines.includes(productLine)) return
-          if (!productLineGroups[productLine]) {
-            productLineGroups[productLine] = { ytdActual: [], ytd1: [], budget: [] }
-          }
-          productLineGroups[productLine].ytdActual.push(record)
-        })
-        myYtd1.forEach(record => {
-          const productLine = (record.productLine || '').toLowerCase().replace(/\s+/g, '')
-          if (legacyProductLines.includes(productLine)) return
-          if (!productLineGroups[productLine]) {
-            productLineGroups[productLine] = { ytdActual: [], ytd1: [], budget: [] }
-          }
-          productLineGroups[productLine].ytd1.push(record)
-        })
-        myBudget.forEach(record => {
-          const productLine = (record.productLine || '').toLowerCase().replace(/\s+/g, '')
-          if (legacyProductLines.includes(productLine)) return
-          if (!productLineGroups[productLine]) {
-            productLineGroups[productLine] = { ytdActual: [], ytd1: [], budget: [] }
-          }
-          productLineGroups[productLine].budget.push(record)
+        // Calculate totals from uploaded data (all product lines combined)
+        const totalYtd = calculateYtdFromMonthly(myYtdActual)
+        const totalFy2024 = calculateHistoricalYearTotal(myYtd1) // YTD-1 = FY 2024
+        const totalFy2023 = calculateHistoricalYearTotal(myYtd2) // YTD-2 = FY 2023
+        const totalFy2022 = calculateHistoricalYearTotal(myYtd3) // YTD-3 = FY 2022
+        const totalBudget = calculateFullYearFromMonthly(myBudget)
+
+        // Calculate forecast from saved financials and monthly forecasts
+        let totalForecast = 0
+        let totalFullYear = 0
+        const monthForecastTotals = {}
+        
+        // Initialize month forecasts
+        remainingMonthsData.slice(0, 4).forEach(month => {
+          const monthKey = `${month.year}-${String(month.calendarMonth + 1).padStart(2, '0')}`
+          monthForecastTotals[monthKey] = 0
         })
 
-        // Calculate aggregates from uploaded data
-        Object.entries(productLineGroups).forEach(([productLine, data]) => {
-          const ytd = calculateYtdFromMonthly(data.ytdActual)
-          const previousYear = calculateFullYearFromMonthly(data.ytd1)
-          const budget = calculateFullYearFromMonthly(data.budget)
-
-          if (productLine === 'learnerships') {
-            aggregatedFinancials.learnerships.ytd += ytd
-            aggregatedFinancials.learnerships.previousYear += previousYear
-            aggregatedFinancials.learnerships.budget += budget
-          } else if (productLine === 'tapbusiness') {
-            aggregatedFinancials.tapBusiness.ytd += ytd
-            aggregatedFinancials.tapBusiness.previousYear += previousYear
-            aggregatedFinancials.tapBusiness.budget += budget
-          } else if (productLine === 'compliancetraining') {
-            aggregatedFinancials.compliance.ytd += ytd
-            aggregatedFinancials.compliance.previousYear += previousYear
-            aggregatedFinancials.compliance.budget += budget
-          } else if (productLine === 'othercourses') {
-            aggregatedFinancials.otherCourses.ytd += ytd
-            aggregatedFinancials.otherCourses.previousYear += previousYear
-            aggregatedFinancials.otherCourses.budget += budget
-          } else {
-            aggregatedFinancials.other.ytd += ytd
-            aggregatedFinancials.other.previousYear += previousYear
-            aggregatedFinancials.other.budget += budget
-          }
-        })
-
-        // Get forecast from saved financials (remaining forecast = fullYearForecast - ytd)
         currentYearFinancials.forEach(cf => {
           const productLine = (cf.productLine || '').toLowerCase().replace(/\s+/g, '')
           if (legacyProductLines.includes(productLine)) return
 
           const fullYearForecast = cf.fullYearForecast || 0
-          // Get YTD from uploaded data for this product line
-          let ytdFromUploaded = 0
-          if (productLine === 'learnerships') ytdFromUploaded = aggregatedFinancials.learnerships.ytd
-          else if (productLine === 'tapbusiness') ytdFromUploaded = aggregatedFinancials.tapBusiness.ytd
-          else if (productLine === 'compliancetraining') ytdFromUploaded = aggregatedFinancials.compliance.ytd
-          else if (productLine === 'othercourses') ytdFromUploaded = aggregatedFinancials.otherCourses.ytd
-          else ytdFromUploaded = aggregatedFinancials.other.ytd
-
-          // Forecast is remaining after YTD (but calculated per client)
+          totalFullYear += fullYearForecast
+          
+          // Get monthly forecasts
+          const months = cf.months || {}
+          remainingMonthsData.slice(0, 4).forEach(month => {
+            const monthKey = `${month.year}-${String(month.calendarMonth + 1).padStart(2, '0')}`
+            const monthValue = months[monthKey] || 0
+            monthForecastTotals[monthKey] = (monthForecastTotals[monthKey] || 0) + (parseFloat(monthValue) || 0)
+          })
+          
+          // Forecast is remaining after YTD
           const forecast = Math.max(0, fullYearForecast - (cf.history?.currentYearYTD || 0))
-
-          if (productLine === 'learnerships') {
-            aggregatedFinancials.learnerships.forecast += forecast
-          } else if (productLine === 'tapbusiness') {
-            aggregatedFinancials.tapBusiness.forecast += forecast
-          } else if (productLine === 'compliancetraining') {
-            aggregatedFinancials.compliance.forecast += forecast
-          } else if (productLine === 'othercourses') {
-            aggregatedFinancials.otherCourses.forecast += forecast
-          } else {
-            aggregatedFinancials.other.forecast += forecast
-          }
+          totalForecast += forecast
         })
 
-        setFinancialData(aggregatedFinancials)
+        setMonthForecasts(monthForecastTotals)
+        
+        // Calculate full year forecast as YTD + sum of forecasting months
+        const totalForecastingMonths = Object.values(monthForecastTotals).reduce((sum, value) => sum + (parseFloat(value) || 0), 0)
+        const calculatedFullYear = totalYtd + totalForecastingMonths
+        
+        console.log('Dashboard Full Year Calculation:', {
+          ytd: totalYtd,
+          forecastingMonths: monthForecastTotals,
+          totalForecastingMonths,
+          calculatedFullYear
+        })
+        
+        setFinancialData({
+          fy2022: totalFy2022,
+          fy2023: totalFy2023,
+          fy2024: totalFy2024,
+          ytd: totalYtd,
+          forecast: totalForecast,
+          fullYear: calculatedFullYear,
+          budget: totalBudget
+        })
       } else {
         // For manager: aggregate financials from tenant-filtered clients
         const managerClients = filteredClientsData
@@ -543,116 +723,143 @@ const Dashboard = () => {
           return parseInt(fyStr) === currentFinancialYear
         })
 
-        // Aggregate YTD, Previous Year, and Budget from UPLOADED data by product line
-        const managerProductLineGroups = {}
-        myYtdActual.forEach(record => {
-          const productLine = (record.productLine || '').toLowerCase().replace(/\s+/g, '')
-          if (legacyProductLines.includes(productLine)) return
-          if (!managerProductLineGroups[productLine]) {
-            managerProductLineGroups[productLine] = { ytdActual: [], ytd1: [], budget: [] }
-          }
-          managerProductLineGroups[productLine].ytdActual.push(record)
-        })
-        myYtd1.forEach(record => {
-          const productLine = (record.productLine || '').toLowerCase().replace(/\s+/g, '')
-          if (legacyProductLines.includes(productLine)) return
-          if (!managerProductLineGroups[productLine]) {
-            managerProductLineGroups[productLine] = { ytdActual: [], ytd1: [], budget: [] }
-          }
-          managerProductLineGroups[productLine].ytd1.push(record)
-        })
-        myBudget.forEach(record => {
-          const productLine = (record.productLine || '').toLowerCase().replace(/\s+/g, '')
-          if (legacyProductLines.includes(productLine)) return
-          if (!managerProductLineGroups[productLine]) {
-            managerProductLineGroups[productLine] = { ytdActual: [], ytd1: [], budget: [] }
-          }
-          managerProductLineGroups[productLine].budget.push(record)
+        // Calculate totals from uploaded data (all product lines combined)
+        const totalYtd = calculateYtdFromMonthly(myYtdActual)
+        const totalFy2024 = calculateHistoricalYearTotal(myYtd1) // YTD-1 = FY 2024
+        const totalFy2023 = calculateHistoricalYearTotal(myYtd2) // YTD-2 = FY 2023
+        const totalFy2022 = calculateHistoricalYearTotal(myYtd3) // YTD-3 = FY 2022
+        const totalBudget = calculateFullYearFromMonthly(myBudget)
+
+        // Calculate forecast from saved financials and monthly forecasts
+        let totalForecast = 0
+        let totalFullYear = 0
+        const monthForecastTotals = {}
+        
+        // Initialize month forecasts
+        remainingMonthsData.slice(0, 4).forEach(month => {
+          const monthKey = `${month.year}-${String(month.calendarMonth + 1).padStart(2, '0')}`
+          monthForecastTotals[monthKey] = 0
         })
 
-        // Calculate aggregates from uploaded data
-        Object.entries(managerProductLineGroups).forEach(([productLine, data]) => {
-          const ytd = calculateYtdFromMonthly(data.ytdActual)
-          const previousYear = calculateFullYearFromMonthly(data.ytd1)
-          const budget = calculateFullYearFromMonthly(data.budget)
-
-          if (productLine === 'learnerships') {
-            managerAggregatedFinancials.learnerships.ytd += ytd
-            managerAggregatedFinancials.learnerships.previousYear += previousYear
-            managerAggregatedFinancials.learnerships.budget += budget
-          } else if (productLine === 'tapbusiness') {
-            managerAggregatedFinancials.tapBusiness.ytd += ytd
-            managerAggregatedFinancials.tapBusiness.previousYear += previousYear
-            managerAggregatedFinancials.tapBusiness.budget += budget
-          } else if (productLine === 'compliancetraining') {
-            managerAggregatedFinancials.compliance.ytd += ytd
-            managerAggregatedFinancials.compliance.previousYear += previousYear
-            managerAggregatedFinancials.compliance.budget += budget
-          } else if (productLine === 'othercourses') {
-            managerAggregatedFinancials.otherCourses.ytd += ytd
-            managerAggregatedFinancials.otherCourses.previousYear += previousYear
-            managerAggregatedFinancials.otherCourses.budget += budget
-          } else {
-            managerAggregatedFinancials.other.ytd += ytd
-            managerAggregatedFinancials.other.previousYear += previousYear
-            managerAggregatedFinancials.other.budget += budget
-          }
-        })
-
-        // Get forecast from saved financials (remaining forecast = fullYearForecast - ytd)
         managerCurrentYearFinancials.forEach(cf => {
           const productLine = (cf.productLine || '').toLowerCase().replace(/\s+/g, '')
           if (legacyProductLines.includes(productLine)) return
 
           const fullYearForecast = cf.fullYearForecast || 0
+          totalFullYear += fullYearForecast
+          
+          // Get monthly forecasts from the months object
+          const months = cf.months || {}
+          remainingMonthsData.slice(0, 4).forEach(month => {
+            const monthKey = `${month.year}-${String(month.calendarMonth + 1).padStart(2, '0')}`
+            // Try different key formats
+            const monthValue = months[monthKey] || months[`${month.year}-${month.calendarMonth + 1}`] || 0
+            const numericValue = parseFloat(monthValue) || 0
+            monthForecastTotals[monthKey] = (monthForecastTotals[monthKey] || 0) + numericValue
+          })
+          
+          // Forecast is remaining after YTD
           const forecast = Math.max(0, fullYearForecast - (cf.history?.currentYearYTD || 0))
-
-          if (productLine === 'learnerships') {
-            managerAggregatedFinancials.learnerships.forecast += forecast
-          } else if (productLine === 'tapbusiness') {
-            managerAggregatedFinancials.tapBusiness.forecast += forecast
-          } else if (productLine === 'compliancetraining') {
-            managerAggregatedFinancials.compliance.forecast += forecast
-          } else if (productLine === 'othercourses') {
-            managerAggregatedFinancials.otherCourses.forecast += forecast
-          } else {
-            managerAggregatedFinancials.other.forecast += forecast
-          }
+          totalForecast += forecast
         })
 
-        setFinancialData(managerAggregatedFinancials)
+        console.log('Manager month forecasts calculated:', monthForecastTotals)
+        setMonthForecasts(monthForecastTotals)
+        
+        // Calculate full year forecast as YTD + sum of forecasting months
+        const totalForecastingMonths = Object.values(monthForecastTotals).reduce((sum, value) => sum + (parseFloat(value) || 0), 0)
+        const calculatedFullYear = totalYtd + totalForecastingMonths
+        
+        console.log('Manager Full Year Calculation:', {
+          ytd: totalYtd,
+          forecastingMonths: monthForecastTotals,
+          totalForecastingMonths,
+          calculatedFullYear
+        })
+        
+        setFinancialData({
+          fy2022: totalFy2022,
+          fy2023: totalFy2023,
+          fy2024: totalFy2024,
+          ytd: totalYtd,
+          forecast: totalForecast,
+          fullYear: calculatedFullYear,
+          budget: totalBudget
+        })
       }
 
+      // Store filtered clients for use in follow-up modal
+      setFilteredClientsForDashboard(filteredClientsData)
+
       // Load pipeline stats from client pipelineStatus field - use filtered clients from above
+      // Only count clients that have a pipelineStatus set (not null/undefined)
+      const clientsWithPipelineStatus = filteredClientsData.filter(c => c.pipelineStatus)
       const stats = {
-        leadGeneration: filteredClientsData.filter(c => c.pipelineStatus === 'new-lead').length,
-        initialContact: filteredClientsData.filter(c => c.pipelineStatus === 'qualifying').length,
-        needsAssessment: filteredClientsData.filter(c => c.pipelineStatus === 'qualifying').length,
-        proposalSent: filteredClientsData.filter(c => c.pipelineStatus === 'proposal-sent').length,
-        negotiation: filteredClientsData.filter(c => c.pipelineStatus === 'negotiation' || c.pipelineStatus === 'awaiting-decision').length,
-        dealClosed: filteredClientsData.filter(c => c.pipelineStatus === 'won').length
+        leadGeneration: clientsWithPipelineStatus.filter(c => c.pipelineStatus === 'new-lead').length,
+        initialContact: clientsWithPipelineStatus.filter(c => c.pipelineStatus === 'qualifying').length,
+        needsAssessment: clientsWithPipelineStatus.filter(c => c.pipelineStatus === 'needs-assessment').length,
+        proposalSent: clientsWithPipelineStatus.filter(c => c.pipelineStatus === 'proposal-sent').length,
+        negotiation: clientsWithPipelineStatus.filter(c => c.pipelineStatus === 'negotiation' || c.pipelineStatus === 'awaiting-decision').length,
+        dealClosed: clientsWithPipelineStatus.filter(c => c.pipelineStatus === 'won').length
       }
       setPipelineStats(stats)
 
-      // Load message stats - filter by accessible users
-      const messages = await getMessages()
-      const filteredMessages = (!isSystemAdmin && !isSalesHead())
-        ? messages.filter(m => accessibleUserIds.includes(m.assignedTo) || accessibleUserIds.includes(m.createdBy))
-        : messages
 
-      setMessageStats({
-        unread: filteredMessages.filter(m => m.status === 'unread').length,
-        assigned: filteredMessages.filter(m => m.status === 'assigned').length,
-        inProgress: filteredMessages.filter(m => m.status === 'in-progress').length,
-        resolved: filteredMessages.filter(m => m.status === 'resolved').length
-      })
-
-      // Load recent feedback - filter by accessible users
-      const feedback = await getFeedback()
-      const filteredFeedback = (!isSystemAdmin && !isSalesHead())
-        ? feedback.filter(f => accessibleUserIds.includes(f.createdBy) || accessibleUserIds.includes(f.salesPersonId))
-        : feedback
-      setRecentFeedback(filteredFeedback.slice(0, 5))
+      // Load upcoming tasks (clients with nextFollowUpDate) - filter by accessible users
+      // Use the same filteredClientsData that we already have
+      const now = new Date()
+      now.setHours(0, 0, 0, 0)
+      
+      let tasks = filteredClientsData
+        .filter(c => {
+          // Only include clients that have a nextFollowUpDate and are not won/lost
+          const status = (c.pipelineStatus || '').toLowerCase()
+          return c.nextFollowUpDate && status !== 'won' && status !== 'lost'
+        })
+        .map(client => {
+          // Calculate follow-up status and days until
+          let followUpStatus = 'scheduled'
+          let daysUntilFollowUp = null
+          
+          if (client.nextFollowUpDate) {
+            const followUpDate = client.nextFollowUpDate.toDate
+              ? client.nextFollowUpDate.toDate()
+              : new Date(client.nextFollowUpDate)
+            followUpDate.setHours(0, 0, 0, 0)
+            
+            const diffTime = followUpDate - now
+            daysUntilFollowUp = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+            
+            if (followUpDate < now) {
+              followUpStatus = 'overdue'
+            } else if (followUpDate.getTime() === now.getTime()) {
+              followUpStatus = 'due-today'
+            } else if (followUpDate <= new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)) {
+              followUpStatus = 'due-this-week'
+            }
+          }
+          
+          return {
+            ...client,
+            followUpStatus,
+            daysUntilFollowUp
+          }
+        })
+        .sort((a, b) => {
+          // Sort by: overdue first, then due today, then by date
+          const statusOrder = { 'overdue': 0, 'due-today': 1, 'due-this-week': 2, 'scheduled': 3 }
+          const orderDiff = statusOrder[a.followUpStatus] - statusOrder[b.followUpStatus]
+          if (orderDiff !== 0) return orderDiff
+          
+          // Within same status, sort by days until follow-up
+          if (a.daysUntilFollowUp !== null && b.daysUntilFollowUp !== null) {
+            return a.daysUntilFollowUp - b.daysUntilFollowUp
+          }
+          return (a.name || '').localeCompare(b.name || '')
+        })
+        .slice(0, 10) // Show top 10 upcoming tasks
+      
+      setUpcomingTasks(tasks)
 
       setLoading(false)
     } catch (error) {
@@ -846,223 +1053,192 @@ const Dashboard = () => {
           <div className="widget-header">
             <h2>{isManager ? 'Financial Dashboard' : 'My Financial Performance'}</h2>
             <Link to="/dashboard/edit-financial" className="edit-link">
-              {isManager ? 'Edit All' : 'Edit My Forecasts'}
+              Edit
             </Link>
           </div>
-          <div className="financial-table">
-            <table>
-              <thead>
-                <tr>
-                  <th>Product Line</th>
-                  {!isManager && <th>Budget</th>}
-                  <th>Previous Year</th>
-                  <th>YTD</th>
-                  <th>Forecast</th>
-                  <th>Full Year Forecast</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>Learnerships</td>
-                  {!isManager && <td>{formatCurrency(financialData.learnerships.budget)}</td>}
-                  <td>{formatCurrency(financialData.learnerships.previousYear)}</td>
-                  <td>{formatCurrency(financialData.learnerships.ytd)}</td>
-                  <td>{formatCurrency(financialData.learnerships.forecast)}</td>
-                  <td>{formatCurrency(financialData.learnerships.ytd + financialData.learnerships.forecast)}</td>
-                </tr>
-                <tr>
-                  <td>TAP Business</td>
-                  {!isManager && <td>{formatCurrency(financialData.tapBusiness.budget)}</td>}
-                  <td>{formatCurrency(financialData.tapBusiness.previousYear)}</td>
-                  <td>{formatCurrency(financialData.tapBusiness.ytd)}</td>
-                  <td>{formatCurrency(financialData.tapBusiness.forecast)}</td>
-                  <td>{formatCurrency(financialData.tapBusiness.ytd + financialData.tapBusiness.forecast)}</td>
-                </tr>
-                <tr>
-                  <td>Compliance</td>
-                  {!isManager && <td>{formatCurrency(financialData.compliance.budget)}</td>}
-                  <td>{formatCurrency(financialData.compliance.previousYear)}</td>
-                  <td>{formatCurrency(financialData.compliance.ytd)}</td>
-                  <td>{formatCurrency(financialData.compliance.forecast)}</td>
-                  <td>{formatCurrency(financialData.compliance.ytd + financialData.compliance.forecast)}</td>
-                </tr>
-                <tr>
-                  <td>Other Courses</td>
-                  {!isManager && <td>{formatCurrency(financialData.otherCourses.budget)}</td>}
-                  <td>{formatCurrency(financialData.otherCourses.previousYear)}</td>
-                  <td>{formatCurrency(financialData.otherCourses.ytd)}</td>
-                  <td>{formatCurrency(financialData.otherCourses.forecast)}</td>
-                  <td>{formatCurrency(financialData.otherCourses.ytd + financialData.otherCourses.forecast)}</td>
-                </tr>
-                {(financialData.other?.previousYear > 0 || financialData.other?.ytd > 0 || financialData.other?.forecast > 0 || financialData.other?.budget > 0) && (
-                  <tr>
-                    <td>Other</td>
-                    {!isManager && <td>{formatCurrency(financialData.other?.budget || 0)}</td>}
-                    <td>{formatCurrency(financialData.other?.previousYear || 0)}</td>
-                    <td>{formatCurrency(financialData.other?.ytd || 0)}</td>
-                    <td>{formatCurrency(financialData.other?.forecast || 0)}</td>
-                    <td>{formatCurrency((financialData.other?.ytd || 0) + (financialData.other?.forecast || 0))}</td>
-                  </tr>
-                )}
-              </tbody>
-              <tfoot>
-                <tr className="totals-row">
-                  <td><strong>Total</strong></td>
-                  {!isManager && <td><strong>{formatCurrency(
-                    financialData.learnerships.budget +
-                    financialData.tapBusiness.budget +
-                    financialData.compliance.budget +
-                    financialData.otherCourses.budget +
-                    (financialData.other?.budget || 0)
-                  )}</strong></td>}
-                  <td><strong>{formatCurrency(
-                    financialData.learnerships.previousYear +
-                    financialData.tapBusiness.previousYear +
-                    financialData.compliance.previousYear +
-                    financialData.otherCourses.previousYear +
-                    (financialData.other?.previousYear || 0)
-                  )}</strong></td>
-                  <td><strong>{formatCurrency(
-                    financialData.learnerships.ytd +
-                    financialData.tapBusiness.ytd +
-                    financialData.compliance.ytd +
-                    financialData.otherCourses.ytd +
-                    (financialData.other?.ytd || 0)
-                  )}</strong></td>
-                  <td><strong>{formatCurrency(
-                    financialData.learnerships.forecast +
-                    financialData.tapBusiness.forecast +
-                    financialData.compliance.forecast +
-                    financialData.otherCourses.forecast +
-                    (financialData.other?.forecast || 0)
-                  )}</strong></td>
-                  <td><strong>{formatCurrency(
-                    (financialData.learnerships.ytd + financialData.learnerships.forecast) +
-                    (financialData.tapBusiness.ytd + financialData.tapBusiness.forecast) +
-                    (financialData.compliance.ytd + financialData.compliance.forecast) +
-                    (financialData.otherCourses.ytd + financialData.otherCourses.forecast) +
-                    ((financialData.other?.ytd || 0) + (financialData.other?.forecast || 0))
-                  )}</strong></td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        </div>
+          <div className="financial-summary">
+            <div className="financial-section">
+              <div className="financial-section-header">Prior Year Actuals</div>
+              <div className="financial-item">
+                <span className="financial-label">FY 2022</span>
+                <span className="financial-value">{formatCurrency(financialData.fy2022)}</span>
+              </div>
+              <div className="financial-item">
+                <span className="financial-label">FY 2023</span>
+                <span className="financial-value">{formatCurrency(financialData.fy2023)}</span>
+              </div>
+              <div className="financial-item">
+                <span className="financial-label">FY 2024</span>
+                <span className="financial-value">{formatCurrency(financialData.fy2024)}</span>
+              </div>
+            </div>
 
-        {/* Sales Pipeline Widget - Bar Chart */}
-        <div className="dashboard-widget pipeline-widget">
-          <div className="widget-header">
-            <h2>{isManager ? 'Sales Pipeline' : 'My Pipeline'}</h2>
-            <Link to="/sales-pipeline" className="view-all-link">View All</Link>
-          </div>
-          <div className="pipeline-chart">
-            {(() => {
-              const pipelineData = [
-                { name: 'Lead Gen', count: pipelineStats.leadGeneration, color: '#64B5F6' },
-                { name: 'Contact', count: pipelineStats.initialContact, color: '#4FC3F7' },
-                { name: 'Assessment', count: pipelineStats.needsAssessment, color: '#4DD0E1' },
-                { name: 'Proposal', count: pipelineStats.proposalSent, color: '#FFA600' },
-                { name: 'Negotiation', count: pipelineStats.negotiation, color: '#FFB74D' },
-                { name: 'Closed', count: pipelineStats.dealClosed, color: '#81C784' }
-              ]
-              const maxCount = Math.max(...pipelineData.map(d => d.count), 1)
-              const totalClients = pipelineData.reduce((sum, d) => sum + d.count, 0)
+            <div className="financial-section">
+              <div className="financial-section-header-with-value">
+                <span className="financial-section-header-text">YTD Actual ({reportingMonth})</span>
+                <span className="financial-value">{formatCurrency(financialData.ytd)}</span>
+              </div>
+            </div>
 
-              return (
-                <>
-                  <div className="pipeline-total">
-                    <span className="total-number">{totalClients}</span>
-                    <span className="total-label">Total Clients in Pipeline</span>
-                  </div>
-                  <div className="pipeline-bars">
-                    {pipelineData.map((stage, index) => (
-                      <div key={index} className="pipeline-bar-item">
-                        <div className="bar-label">{stage.name}</div>
-                        <div className="bar-container">
-                          <div
-                            className="bar-fill"
-                            style={{
-                              width: `${(stage.count / maxCount) * 100}%`,
-                              backgroundColor: stage.color
-                            }}
-                          />
-                        </div>
-                        <div className="bar-count">{stage.count}</div>
+            <div className="financial-section">
+              <div className="financial-section-header">Forecasting Months</div>
+              {remainingMonths.length > 0 ? (
+                <div 
+                  className="forecasting-months-grid"
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(3, 1fr)',
+                    gap: '10px',
+                    marginTop: '8px',
+                    width: '100%',
+                    boxSizing: 'border-box'
+                  }}
+                >
+                  {remainingMonths.map((month, idx) => {
+                    const monthKey = `${month.year}-${String(month.calendarMonth + 1).padStart(2, '0')}`
+                    const monthValue = monthForecasts[monthKey] || 0
+                    return (
+                      <div 
+                        key={idx} 
+                        className="forecasting-month-item"
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column'
+                        }}
+                      >
+                        <span className="forecasting-month-label">{month.name}</span>
+                        <span className="forecasting-month-value">{formatCurrency(monthValue)}</span>
                       </div>
-                    ))}
-                  </div>
-                </>
-              )
-            })()}
-          </div>
-        </div>
-
-        {/* Messages Widget */}
-        <div className="dashboard-widget messages-widget">
-          <div className="widget-header">
-            <h2>{isManager ? 'Messages' : 'My Messages'}</h2>
-            <Link to="/messages" className="view-all-link">View All</Link>
-          </div>
-          <div className="message-stats">
-            <div className="stat-item">
-              <span className="stat-label">Unread</span>
-              <span className="stat-value">{messageStats.unread}</span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-label">In Progress</span>
-              <span className="stat-value">{messageStats.inProgress}</span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-label">Assigned</span>
-              <span className="stat-value">{messageStats.assigned}</span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-label">Resolved</span>
-              <span className="stat-value">{messageStats.resolved}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Feedback Widget */}
-        <div className="dashboard-widget feedback-widget">
-          <div className="widget-header">
-            <h2>{isManager ? 'Recent Client Feedback' : 'My Client Feedback'}</h2>
-          </div>
-          <div className="feedback-list">
-            {recentFeedback.length > 0 ? (
-              recentFeedback.map((feedback) => (
-                <div key={feedback.id} className="feedback-item">
-                  <div className="feedback-header-row">
-                    <div className="feedback-company">{feedback.companyName || feedback.clientName}</div>
-                    <div className="feedback-rating">
-                      {'★'.repeat(feedback.overallRating || 0)}
-                    </div>
-                  </div>
-                  {feedback.content && (
-                    <div className="feedback-content">{feedback.content}</div>
-                  )}
-                  <div className="feedback-meta">
-                    <span className="feedback-user">
-                      {feedback.userName || 'Unknown User'}
-                    </span>
-                    <span className="feedback-date">
-                      {feedback.date
-                        ? (feedback.date.toDate ? feedback.date.toDate() : new Date(feedback.date)).toLocaleDateString('en-ZA', {
-                            day: 'numeric',
-                            month: 'short',
-                            year: 'numeric'
-                          })
-                        : 'No date'}
-                    </span>
-                  </div>
-                  {feedback.followUpRequired && (
-                    <span className="follow-up-badge">Follow-Up Required</span>
-                  )}
+                    )
+                  })}
                 </div>
-              ))
-            ) : (
-              <p className="no-feedback">No recent feedback</p>
+              ) : (
+                <div style={{ padding: '8px 0', color: '#666' }}>No forecasting months available</div>
+              )}
+            </div>
+
+            <div className="financial-section">
+              <div className="financial-section-header-with-value">
+                <span className="financial-section-header-text">Full Year Forecast</span>
+                <span className="financial-value">{formatCurrency(financialData.fullYear)}</span>
+              </div>
+            </div>
+
+            {!isManager && (
+              <div className="financial-section">
+                <div className="financial-section-header-with-value">
+                  <span className="financial-section-header-text">Budget</span>
+                  <span className="financial-value">{formatCurrency(financialData.budget)}</span>
+                </div>
+              </div>
             )}
+          </div>
+        </div>
+
+        {/* Right Side Column: Pipeline and Tasks */}
+        <div className="dashboard-right-column">
+          {/* Sales Pipeline Widget - Bar Chart */}
+          <div className="dashboard-widget pipeline-widget pipeline-widget-compact">
+            <div className="widget-header">
+              <h2>{isManager ? 'Sales Pipeline' : 'My Pipeline'}</h2>
+              <Link to="/sales-pipeline" className="view-all-link">View All</Link>
+            </div>
+            <div className="pipeline-chart">
+              {(() => {
+                const pipelineData = [
+                  { name: 'Lead Gen', count: pipelineStats.leadGeneration, color: '#64B5F6' },
+                  { name: 'Contact', count: pipelineStats.initialContact, color: '#4FC3F7' },
+                  { name: 'Assessment', count: pipelineStats.needsAssessment, color: '#4DD0E1' },
+                  { name: 'Proposal', count: pipelineStats.proposalSent, color: '#FFA600' },
+                  { name: 'Negotiation', count: pipelineStats.negotiation, color: '#FFB74D' },
+                  { name: 'Closed', count: pipelineStats.dealClosed, color: '#81C784' }
+                ]
+                const maxCount = Math.max(...pipelineData.map(d => d.count), 1)
+                const totalClients = pipelineData.reduce((sum, d) => sum + d.count, 0)
+
+                return (
+                  <>
+                    <div className="pipeline-total">
+                      <span className="total-number">{totalClients}</span>
+                      <span className="total-label">Total Clients in Pipeline</span>
+                    </div>
+                    <div className="pipeline-bars">
+                      {pipelineData.map((stage, index) => (
+                        <div key={index} className="pipeline-bar-item">
+                          <div className="bar-label">{stage.name}</div>
+                          <div className="bar-container">
+                            <div
+                              className="bar-fill"
+                              style={{
+                                width: `${(stage.count / maxCount) * 100}%`,
+                                backgroundColor: stage.color
+                              }}
+                            />
+                          </div>
+                          <div className="bar-count">{stage.count}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )
+              })()}
+            </div>
+          </div>
+
+          {/* Upcoming Tasks Widget */}
+          <div className="dashboard-widget upcoming-tasks-widget">
+            <div className="widget-header">
+              <h2>{isManager ? 'Upcoming Client Tasks' : 'My Upcoming Tasks'}</h2>
+              <Link to="/clients" className="view-all-link">View All</Link>
+            </div>
+            <div className="tasks-list">
+              {upcomingTasks.length > 0 ? (
+                upcomingTasks.map((task) => {
+                  const followUpDate = task.nextFollowUpDate?.toDate
+                    ? task.nextFollowUpDate.toDate()
+                    : new Date(task.nextFollowUpDate)
+                  const dateStr = followUpDate.toLocaleDateString('en-ZA', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric'
+                  })
+                  
+                  return (
+                    <div key={task.id} className="task-item">
+                      <div className="task-header-row">
+                        <div className="task-client-name">{task.name}</div>
+                        <div className={`task-status-badge ${task.followUpStatus}`}>
+                          {task.followUpStatus === 'overdue' && '⚠️ Overdue'}
+                          {task.followUpStatus === 'due-today' && '📅 Due Today'}
+                          {task.followUpStatus === 'due-this-week' && `📅 In ${task.daysUntilFollowUp} days`}
+                          {task.followUpStatus === 'scheduled' && `📅 ${task.daysUntilFollowUp} days`}
+                        </div>
+                      </div>
+                      {task.nextFollowUpType && (
+                        <div className="task-type">
+                          Type: {task.nextFollowUpType}
+                        </div>
+                      )}
+                      {task.nextFollowUpNotes && (
+                        <div className="task-notes">{task.nextFollowUpNotes}</div>
+                      )}
+                      <div className="task-meta">
+                        <span className="task-date">
+                          Due: {dateStr}
+                        </span>
+                        {task.assignedSalesPerson && (
+                          <span className="task-assigned">
+                            Assigned to: {users.find(u => u.id === task.assignedSalesPerson)?.displayName || 'Unknown'}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })
+              ) : (
+                <p className="no-tasks">No upcoming tasks</p>
+              )}
+            </div>
           </div>
         </div>
       </div>

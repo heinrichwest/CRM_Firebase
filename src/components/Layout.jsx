@@ -26,7 +26,9 @@ const Layout = () => {
   const [selectedChatUser, setSelectedChatUser] = useState(null)
   const [unreadChatCount, setUnreadChatCount] = useState(0)
   const [lastSeenChatTime, setLastSeenChatTime] = useState(null)
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false)
   const adminDropdownRef = useRef(null)
+  const profileDropdownRef = useRef(null)
   const chatEndRef = useRef(null)
 
   useEffect(() => {
@@ -192,21 +194,24 @@ const Layout = () => {
   }, [chatOpen, chatView, selectedChatUser])
 
   useEffect(() => {
-    // Close dropdown when clicking outside
+    // Close dropdowns when clicking outside
     const handleClickOutside = (event) => {
       if (adminDropdownRef.current && !adminDropdownRef.current.contains(event.target)) {
         setAdminDropdownOpen(false)
       }
+      if (profileDropdownRef.current && !profileDropdownRef.current.contains(event.target)) {
+        setProfileDropdownOpen(false)
+      }
     }
 
-    if (adminDropdownOpen) {
+    if (adminDropdownOpen || profileDropdownOpen) {
       document.addEventListener('mousedown', handleClickOutside)
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside)
     }
-  }, [adminDropdownOpen])
+  }, [adminDropdownOpen, profileDropdownOpen])
 
   const loadUserProfile = async () => {
     try {
@@ -568,34 +573,55 @@ const Layout = () => {
               </div>
             )}
 
-            {/* User Profile Section - Clickable */}
+            {/* User Profile Section - Clickable with Dropdown */}
             {userProfile && (
-              <Link 
-                to="/profile" 
-                className={`user-profile-header ${isActive('/profile') ? 'active' : ''}`}
+              <div 
+                className="profile-dropdown"
+                ref={profileDropdownRef}
               >
-                <div className="user-avatar">
-                  {userProfile.photoURL ? (
-                    <img src={userProfile.photoURL} alt={userProfile.displayName || 'User'} />
+                <button
+                  className={`user-profile-header ${profileDropdownOpen ? 'active' : ''}`}
+                  onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                >
+                  <div className="user-avatar">
+                    {userProfile.photoURL ? (
+                      <img src={userProfile.photoURL} alt={userProfile.displayName || 'User'} />
+                    ) : (
+                      <div className="avatar-placeholder">
+                        {(userProfile.displayName || userProfile.email || 'U').charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                  </div>
+                  {userRole ? (
+                    <div className="user-role">{userRole.name}</div>
+                  ) : userProfile?.role ? (
+                    <div className="user-role">{userProfile.role}</div>
                   ) : (
-                    <div className="avatar-placeholder">
-                      {(userProfile.displayName || userProfile.email || 'U').charAt(0).toUpperCase()}
-                    </div>
+                    <div className="user-role">User</div>
                   )}
-                </div>
-                {userRole ? (
-                  <div className="user-role">{userRole.name}</div>
-                ) : userProfile?.role ? (
-                  <div className="user-role">{userProfile.role}</div>
-                ) : (
-                  <div className="user-role">User</div>
+                </button>
+                {profileDropdownOpen && (
+                  <div className="profile-dropdown-menu">
+                    <Link 
+                      to="/profile" 
+                      className={isActive('/profile') ? 'active' : ''}
+                      onClick={() => setProfileDropdownOpen(false)}
+                    >
+                      Profile
+                    </Link>
+                    <button 
+                      onClick={() => {
+                        setProfileDropdownOpen(false)
+                        handleLogout()
+                      }}
+                      className="profile-dropdown-logout"
+                    >
+                      Logout
+                    </button>
+                  </div>
                 )}
-              </Link>
+              </div>
             )}
-            
-            <button onClick={handleLogout} className="logout-btn">
-              Logout
-            </button>
           </div>
         </div>
       </header>

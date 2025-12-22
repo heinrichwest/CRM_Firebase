@@ -1446,7 +1446,9 @@ export const calculateFullYearForecast = (financialData) => {
 export const saveClientFinancial = async (clientId, clientName, financialYear, productLine, financialData, userId) => {
   try {
     // Use composite key: clientId_financialYear_productLine
-    const financialId = `${clientId}_${financialYear}_${productLine.replace(/\s+/g, '_')}`
+    // Replace slashes in financial year (e.g., "2024/2025" -> "2024-2025") to avoid Firestore path issues
+    const sanitizedYear = String(financialYear).replace(/\//g, '-')
+    const financialId = `${clientId}_${sanitizedYear}_${productLine.replace(/\s+/g, '_')}`
     const financialRef = doc(db, 'clientFinancials', financialId)
     const financialSnap = await getDoc(financialRef)
     
@@ -1470,6 +1472,7 @@ export const saveClientFinancial = async (clientId, clientName, financialYear, p
         currentYearYTD: 0
       },
       months: financialData.months || {},
+      monthComments: financialData.monthComments || {},
       fullYearForecast: finalFullYearForecast,
       comments: financialData.comments || '',
       learnershipDetails: financialData.learnershipDetails || [],

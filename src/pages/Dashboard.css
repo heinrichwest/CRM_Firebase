@@ -1,4 +1,17 @@
 .dashboard {
+  width: 100%;
+  max-width: 100%;
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+/* Override main-content padding for dashboard */
+.main-content:has(.dashboard) {
+  padding: 30px 0;
+}
+
+.dashboard {
   max-width: 1400px;
   margin: 0 auto;
 }
@@ -17,9 +30,21 @@
 
 .dashboard-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: 1fr 1fr;
   gap: 20px;
   margin-bottom: 20px;
+  align-items: start;
+}
+
+.dashboard-right-column {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.dashboard-right-column .dashboard-widget {
+  height: auto;
+  min-height: auto;
 }
 
 .dashboard-widget {
@@ -28,6 +53,10 @@
   border-radius: 12px;
   box-shadow: 0 2px 12px rgba(18, 38, 94, 0.1);
   border-top: 4px solid #12265E;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
 }
 
 .widget-header {
@@ -59,44 +88,114 @@
 }
 
 /* Financial Dashboard */
-.financial-table {
-  overflow-x: auto;
+.financial-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  flex: 1;
+  min-height: 0;
 }
 
-.financial-table table {
+.financial-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   width: 100%;
-  border-collapse: collapse;
+  min-width: 0;
 }
 
-.financial-table th,
-.financial-table td {
-  padding: 12px;
-  text-align: left;
-  border-bottom: 1px solid #eee;
+.financial-section-header {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #12265E;
+  margin-bottom: 4px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #e0e0e0;
 }
 
-.financial-table th {
-  background-color: #f8f9fa;
-  font-weight: 600;
+.financial-section-header-with-value {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #12265E;
+  margin-bottom: 4px;
+  margin-top: 4px;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  border-top: 2px solid #e0e0e0;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.financial-section-header-text {
+  font-weight: 700;
+  font-size: 0.95rem;
   color: #12265E;
 }
 
-.financial-table td {
-  color: #304040;
+.financial-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f0f0;
 }
 
-.financial-table tfoot .totals-row {
-  background-color: #12265E;
-}
-
-.financial-table tfoot .totals-row td {
-  color: white;
+.financial-item:last-child {
   border-bottom: none;
-  padding: 14px 12px;
 }
 
-.financial-table tfoot .totals-row td strong {
-  font-weight: 700;
+.financial-label {
+  font-weight: 500;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.financial-value {
+  font-weight: 600;
+  color: #12265E;
+  font-size: 0.95rem;
+  white-space: nowrap;
+}
+
+.financial-section .forecasting-months-grid {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  grid-auto-rows: auto !important;
+  gap: 10px !important;
+  margin-top: 8px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  align-items: stretch !important;
+  overflow: visible !important;
+}
+
+.forecasting-month-item {
+  display: flex;
+  flex-direction: column;
+  padding: 10px 12px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.forecasting-month-label {
+  font-size: 0.8rem;
+  color: #12265E;
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+
+.forecasting-month-value {
+  font-weight: 600;
+  color: #12265E;
+  font-size: 0.9rem;
+  white-space: nowrap;
 }
 
 /* Pipeline Widget */
@@ -138,17 +237,27 @@
   padding: 10px 0;
 }
 
+.pipeline-widget-compact {
+  max-height: 400px;
+  height: auto;
+}
+
+.pipeline-widget-compact .pipeline-chart {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
 .pipeline-total {
   text-align: center;
-  margin-bottom: 20px;
-  padding: 15px;
+  margin-bottom: 15px;
+  padding: 12px;
   background: linear-gradient(135deg, #f8f9fa 0%, #e8eef6 100%);
   border-radius: 8px;
 }
 
 .pipeline-total .total-number {
   display: block;
-  font-size: 2.5rem;
+  font-size: 2rem;
   font-weight: 700;
   color: #12265E;
   line-height: 1;
@@ -156,7 +265,7 @@
 
 .pipeline-total .total-label {
   display: block;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   color: #666;
   margin-top: 5px;
 }
@@ -164,7 +273,11 @@
 .pipeline-bars {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
+}
+
+.pipeline-widget-compact .pipeline-bars {
+  gap: 8px;
 }
 
 .pipeline-bar-item {
@@ -172,6 +285,10 @@
   grid-template-columns: 85px 1fr 40px;
   gap: 12px;
   align-items: center;
+}
+
+.pipeline-widget-compact .pipeline-bar-item {
+  gap: 8px;
 }
 
 .bar-label {
@@ -307,6 +424,116 @@
   text-align: center;
   color: #999;
   padding: 20px;
+  font-style: italic;
+}
+
+/* Upcoming Tasks Widget */
+.upcoming-tasks-widget {
+  max-height: 600px;
+}
+
+.tasks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.task-item {
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border-left: 3px solid #12265E;
+  transition: all 0.2s;
+}
+
+.task-item:hover {
+  background: #f0f0f0;
+  transform: translateX(2px);
+}
+
+.task-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.task-client-name {
+  font-weight: 600;
+  color: #12265E;
+  font-size: 0.95rem;
+}
+
+.task-status-badge {
+  font-size: 0.85rem;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.task-status-badge.overdue {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.task-status-badge.due-today {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.task-status-badge.due-this-week {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.task-status-badge.scheduled {
+  background: #f1f8e9;
+  color: #558b2f;
+}
+
+.task-type {
+  color: #555;
+  font-size: 0.9rem;
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+
+.task-notes {
+  color: #666;
+  font-size: 0.85rem;
+  margin-bottom: 8px;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.task-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.85rem;
+  color: #666;
+  margin-top: 8px;
+}
+
+.task-date {
+  font-weight: 500;
+  color: #12265E;
+}
+
+.task-assigned {
+  color: #888;
+  font-size: 0.8rem;
+}
+
+.no-tasks {
+  text-align: center;
+  color: #999;
+  padding: 40px 20px;
   font-style: italic;
 }
 
@@ -599,16 +826,17 @@
 }
 
 .no-partners-notice {
-  margin-top: 20px;
-  padding: 20px;
-  background: #e3f2fd;
-  border-radius: 8px;
+  margin-top: 40px;
+  padding: 40px 20px;
   text-align: center;
+  background: transparent;
 }
 
 .no-partners-notice p {
-  margin: 0 0 12px 0;
-  color: #1565c0;
+  margin: 0;
+  color: #666;
+  font-size: 0.95rem;
+  line-height: 1.6;
 }
 
 .create-partner-link {
@@ -628,21 +856,25 @@
   border-radius: 0 0 12px 12px;
   display: flex;
   justify-content: flex-end;
+  gap: 12px;
 }
 
 .close-modal-btn {
   padding: 10px 24px;
-  background: #12265E;
+  background: #6c757d;
   color: white;
   border: none;
   border-radius: 6px;
   font-weight: 500;
+  font-size: 0.9rem;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all 0.2s;
 }
 
 .close-modal-btn:hover {
-  background: #1a3a7a;
+  background: #5a6268;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 /* Pipeline Analytics Section */
@@ -773,6 +1005,7 @@
 /* Follow-Up Modal */
 .followup-modal {
   max-width: 700px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
 }
 
 .followup-filter-tabs {
@@ -782,6 +1015,30 @@
   background: #f8f9fa;
   border-bottom: 1px solid #e0e0e0;
   flex-wrap: wrap;
+}
+
+.followup-filter-tabs .filter-tab {
+  padding: 8px 16px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.followup-filter-tabs .filter-tab:hover {
+  border-color: #12265E;
+  color: #12265E;
+  background: #f0f4ff;
+}
+
+.followup-filter-tabs .filter-tab.active {
+  background: #12265E;
+  border-color: #12265E;
+  color: white;
 }
 
 .followup-clients-list {
