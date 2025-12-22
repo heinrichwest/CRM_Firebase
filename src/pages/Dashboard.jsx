@@ -1080,54 +1080,37 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* Follow-Up Warning Bar - for all users with clients needing follow-up attention */}
+      {/* Small Follow-Up Warning Tile */}
       {followUpStats.needsAttention > 0 && (
-        <div className="manager-alert-bar followup-alert">
-          <div className="alert-content">
-            <span className="alert-icon">📅</span>
-            <span className="alert-text">
-              {followUpStats.overdue > 0 && (
-                <span
-                  className="alert-stat clickable"
-                  onClick={() => openFollowUpModal('overdue')}
-                >
-                  <strong>{followUpStats.overdue}</strong> overdue follow-ups
+        <div className="followup-alert-tile" onClick={() => openFollowUpModal('needs-attention')}>
+          <span className="alert-icon">📅</span>
+          <span className="alert-text">
+            {followUpStats.overdue > 0 && (
+              <span className="alert-stat">
+                <strong>{followUpStats.overdue}</strong> overdue follow-ups
+              </span>
+            )}
+            {followUpStats.overdue > 0 && followUpStats.noFollowUp > 0 && ' | '}
+            {followUpStats.noFollowUp > 0 && (
+              <span className="alert-stat">
+                <strong>{followUpStats.noFollowUp}</strong> {isManager ? 'clients' : 'of your clients'} without follow-up
+              </span>
+            )}
+            {followUpStats.dueToday > 0 && (
+              <>
+                {' | '}
+                <span className="alert-stat">
+                  <strong>{followUpStats.dueToday}</strong> due today
                 </span>
-              )}
-              {followUpStats.overdue > 0 && followUpStats.noFollowUp > 0 && ' | '}
-              {followUpStats.noFollowUp > 0 && (
-                <span
-                  className="alert-stat clickable"
-                  onClick={() => openFollowUpModal('no-followup')}
-                >
-                  <strong>{followUpStats.noFollowUp}</strong> {isManager ? 'clients' : 'of your clients'} without follow-up
-                </span>
-              )}
-              {followUpStats.dueToday > 0 && (
-                <>
-                  {' | '}
-                  <span
-                    className="alert-stat clickable"
-                    onClick={() => openFollowUpModal('due-today')}
-                  >
-                    <strong>{followUpStats.dueToday}</strong> due today
-                  </span>
-                </>
-              )}
-            </span>
-          </div>
-          <button
-            className="allocate-btn"
-            onClick={() => openFollowUpModal('needs-attention')}
-          >
-            Manage Follow-Ups
-          </button>
+              </>
+            )}
+          </span>
         </div>
       )}
 
       <div className="dashboard-grid">
         {/* Financial Dashboard */}
-        <div className="dashboard-widget financial-dashboard">
+        <div className="dashboard-widget">
           <div className="widget-header">
             <h2>{isManager ? 'Financial Dashboard' : 'My Financial Performance'}</h2>
             <Link to="/dashboard/edit-financial" className="edit-link">
@@ -1214,7 +1197,7 @@ const Dashboard = () => {
         </div>
 
         {/* YTD Financial Dashboard */}
-        <div className="dashboard-widget financial-dashboard">
+        <div className="dashboard-widget">
           <div className="widget-header">
             <h2>{isManager ? 'YTD Financial Dashboard' : 'My YTD Financial Performance'}</h2>
           </div>

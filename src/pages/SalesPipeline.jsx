@@ -1,15 +1,13 @@
 import { useState, useEffect } from 'react'
 import { getClients, updateClientPipelineStatus, getPipelineStatuses, getClientsWithAllocationStatus } from '../services/firestoreService'
 import { useTenant } from '../context/TenantContext'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import './SalesPipeline.css'
 
 const SalesPipeline = () => {
   const [clients, setClients] = useState([])
   const [filteredClients, setFilteredClients] = useState([])
   const [loading, setLoading] = useState(true)
-  const [showCreateForm, setShowCreateForm] = useState(false)
-  const [selectedDeal, setSelectedDeal] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [stageFilter, setStageFilter] = useState('all')
   const [draggedDeal, setDraggedDeal] = useState(null)
@@ -30,6 +28,7 @@ const SalesPipeline = () => {
   const isManager = isSystemAdmin || isTeamManager() || isSalesHead()
   const currentUserId = currentUser?.uid
   const tenantId = getTenantId()
+  const navigate = useNavigate()
 
   // Default stages as fallback
   const defaultStages = [
@@ -319,7 +318,7 @@ const SalesPipeline = () => {
                     draggable
                     onDragStart={(e) => handleDragStart(e, client)}
                     onDragEnd={handleDragEnd}
-                    onClick={() => setSelectedDeal(client)}
+                    onClick={() => navigate(`/clients/${client.id}`)}
                   >
                     <div className="deal-company">
                       <Link to={`/clients/${client.id}`} onClick={(e) => e.stopPropagation()}>
@@ -333,17 +332,6 @@ const SalesPipeline = () => {
                         return `Days in status: ${days} day${days !== 1 ? 's' : ''}`
                       })()}
                     </div>
-                    <div className="deal-actions">
-                      <button 
-                        className="action-btn"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setSelectedDeal(client)
-                        }}
-                      >
-                        View
-                      </button>
-                    </div>
                   </div>
                 ))}
                 {stageClients.length === 0 && (
@@ -355,110 +343,6 @@ const SalesPipeline = () => {
         })}
       </div>
 
-      {/* Deal Detail Modal */}
-      {selectedDeal && (
-        <div className="deal-modal" onClick={() => setSelectedDeal(null)}>
-          <div className="deal-modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>{selectedDeal.company || 'Deal Details'}</h2>
-              <button className="close-btn" onClick={() => setSelectedDeal(null)}>×</button>
-            </div>
-            <div className="modal-body">
-              {selectedDeal.clientId && (
-                <div className="detail-item">
-                  <span className="detail-label">Client:</span>
-                  <span className="detail-value">
-                    <Link to={`/clients/${selectedDeal.clientId}`}>
-                      {getClientName(selectedDeal.clientId)}
-                    </Link>
-                  </span>
-                </div>
-              )}
-              <div className="detail-item">
-                <span className="detail-label">Contact:</span>
-                <span className="detail-value">{selectedDeal.contact || 'N/A'}</span>
-              </div>
-              {selectedDeal.product && (
-                <div className="detail-item">
-                  <span className="detail-label">Product:</span>
-                  <span className="detail-value">{selectedDeal.product}</span>
-                </div>
-              )}
-              {selectedDeal.numberOfLearners && (
-                <div className="detail-item">
-                  <span className="detail-label">Number of Learners:</span>
-                  <span className="detail-value">{selectedDeal.numberOfLearners}</span>
-                </div>
-              )}
-              {selectedDeal.seta && (
-                <div className="detail-item">
-                  <span className="detail-label">SETA:</span>
-                  <span className="detail-value">{selectedDeal.seta}</span>
-                </div>
-              )}
-              <div className="detail-item">
-                <span className="detail-label">Deal Value:</span>
-                <span className="detail-value">{formatCurrency(selectedDeal.value || 0)}</span>
-              </div>
-              {selectedDeal.budgetEstimate && (
-                <div className="detail-item">
-                  <span className="detail-label">Budget Estimate:</span>
-                  <span className="detail-value">{formatCurrency(selectedDeal.budgetEstimate)}</span>
-                </div>
-              )}
-              {selectedDeal.bbbeeContribution && (
-                <div className="detail-item">
-                  <span className="detail-label">BBBEE Contribution:</span>
-                  <span className="detail-value">{selectedDeal.bbbeeContribution}</span>
-                </div>
-              )}
-              {selectedDeal.expectedClosingDate && (
-                <div className="detail-item">
-                  <span className="detail-label">Expected Closing Date:</span>
-                  <span className="detail-value">{formatDate(selectedDeal.expectedClosingDate)}</span>
-                </div>
-              )}
-              <div className="detail-item">
-                <span className="detail-label">Priority:</span>
-                <span className="detail-value">{selectedDeal.priority || 'Normal'}</span>
-              </div>
-              <div className="detail-item">
-                <span className="detail-label">Stage:</span>
-                <span className="detail-value">{stages.find(s => s.id === selectedDeal.stage)?.name || 'N/A'}</span>
-              </div>
-              {selectedDeal.details && (
-                <div className="detail-item full-width">
-                  <span className="detail-label">Details:</span>
-                  <span className="detail-value">{selectedDeal.details}</span>
-                </div>
-              )}
-              {selectedDeal.supportingDocuments && (
-                <div className="detail-item full-width">
-                  <span className="detail-label">Supporting Documents:</span>
-                  <span className="detail-value">{selectedDeal.supportingDocuments}</span>
-                </div>
-              )}
-              {selectedDeal.nextAction && (
-                <div className="detail-item">
-                  <span className="detail-label">Next Action:</span>
-                  <span className="detail-value">{selectedDeal.nextAction}</span>
-                </div>
-              )}
-              {selectedDeal.lastContact && (
-                <div className="detail-item">
-                  <span className="detail-label">Last Contact:</span>
-                  <span className="detail-value">{formatDate(selectedDeal.lastContact)}</span>
-                </div>
-              )}
-            </div>
-            <div className="modal-actions">
-              <button className="action-btn">Edit</button>
-              <button className="action-btn">Message</button>
-              <button className="action-btn" onClick={() => setSelectedDeal(null)}>Close</button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

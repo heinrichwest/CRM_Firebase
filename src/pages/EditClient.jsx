@@ -16,6 +16,8 @@ const EditClient = () => {
   const [formData, setFormData] = useState({
     name: '',
     legalName: '',
+    tradingName: '',
+    vatNumber: '',
     type: 'Corporate',
     status: 'Prospect',
     pipelineStatus: '',
@@ -67,6 +69,8 @@ const EditClient = () => {
         setFormData({
           name: clientData.name || '',
           legalName: clientData.legalName || '',
+          tradingName: clientData.tradingName || '',
+          vatNumber: clientData.vatNumber || '',
           type: clientData.type || 'Corporate',
           status: clientData.status || 'Prospect',
           pipelineStatus: clientData.pipelineStatus || '',
@@ -218,6 +222,29 @@ const EditClient = () => {
               </div>
 
               <div className="form-group">
+                <label htmlFor="tradingName">Trading Name</label>
+                <input
+                  type="text"
+                  id="tradingName"
+                  name="tradingName"
+                  value={formData.tradingName}
+                  onChange={handleInputChange}
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="vatNumber">VAT Number</label>
+                <input
+                  type="text"
+                  id="vatNumber"
+                  name="vatNumber"
+                  value={formData.vatNumber}
+                  onChange={handleInputChange}
+                  placeholder="e.g., 1234567890"
+                />
+              </div>
+
+              <div className="form-group">
                 <label htmlFor="type">Client Type *</label>
                 <select
                   id="type"
@@ -361,30 +388,6 @@ const EditClient = () => {
                   placeholder="e.g., March"
                   value={formData.financialYearEnd}
                   onChange={handleInputChange}
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="ytdRevenue">YTD Revenue (R)</label>
-                <input
-                  type="text"
-                  id="ytdRevenue"
-                  name="ytdRevenue"
-                  value={formatNumberDisplay(formData.ytdRevenue)}
-                  onChange={handleCurrencyChange}
-                  placeholder="0"
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="pipelineValue">Pipeline Value (R)</label>
-                <input
-                  type="text"
-                  id="pipelineValue"
-                  name="pipelineValue"
-                  value={formatNumberDisplay(formData.pipelineValue)}
-                  onChange={handleCurrencyChange}
-                  placeholder="0"
                 />
               </div>
             </div>

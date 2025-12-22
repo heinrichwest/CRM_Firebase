@@ -941,74 +941,154 @@ const ClientDetail = () => {
   })
   const totalOverdue = overdueInvoices.reduce((sum, inv) => sum + (inv.amount || 0), 0)
 
-  // Calculate forecast totals
-  const forecastTotal = financials.reduce((sum, f) => sum + (f.fullYearForecast || 0), 0)
-  const ytdTotal = financials.reduce((sum, f) => sum + (f.history?.currentYearYTD || 0), 0)
+  // Use same calculation logic as Dashboard
+  const ytdMonths = fyInfo?.ytdMonths || []
+  const remainingMonthsData = fyInfo?.remainingMonths || []
 
-  // Calculate uploaded financial totals (from accountant uploads)
-  const uploadedYtdActualTotal = uploadedFinancials.ytdActual.reduce((sum, d) => sum + (d.total || 0), 0)
-  const uploadedBudgetTotal = uploadedFinancials.budget.reduce((sum, d) => sum + (d.total || 0), 0)
-  const uploadedYtd1Total = uploadedFinancials.ytd1.reduce((sum, d) => sum + (d.total || 0), 0)
-
-  // Calculate YTD totals (only months up to and including reporting month)
-  // Uses the pre-calculated ytdMonths from fyInfo which is based on the reporting month setting
-  const calculateUploadedYtdTotal = (data, debugLabel = '') => {
-    if (!data || data.length === 0) return 0
-
-    // Use the ytdMonths array from fyInfo (already calculated based on reporting month)
-    const ytdMonthsList = fyInfo?.ytdMonths || []
-    if (ytdMonthsList.length === 0) {
-      console.warn(`calculateUploadedYtdTotal [${debugLabel}]: No ytdMonths available in fyInfo`, { fyInfo })
-      return 0
-    }
-
-    const ytdMonthNames = ytdMonthsList.map(m => m.name)
-
-    // Debug: Log first record to verify data structure
-    if (debugLabel && data.length > 0) {
-      const sampleRecord = data[0]
-      const sampleMonthData = sampleRecord.monthlyData || sampleRecord.monthlyValues || {}
-      console.log(`calculateUploadedYtdTotal [${debugLabel}]:`, {
-        ytdMonthNames,
-        recordCount: data.length,
-        sampleMonthDataKeys: Object.keys(sampleMonthData),
-        sampleMonthDataValues: sampleMonthData,
-        sampleRecordTotal: sampleRecord.total
-      })
-    }
-
-    const total = data.reduce((sum, record) => {
+  // Helper to calculate YTD from monthly data (using Month 1, Month 2, etc. format) - same as Dashboard
+  const calculateYtdFromMonthly = (records) => {
+    let total = 0
+    records.forEach(record => {
       const monthData = record.monthlyData || record.monthlyValues || {}
-      let recordTotal = 0
-      ytdMonthNames.forEach(monthName => {
-        if (monthData[monthName]) {
-          recordTotal += monthData[monthName]
-        }
-      })
-      return sum + recordTotal
-    }, 0)
-
-    if (debugLabel) {
-      console.log(`calculateUploadedYtdTotal [${debugLabel}]: YTD Total = ${total}`)
-    }
-
+      if (ytdMonths.length > 0) {
+        // Use fyMonthNumber to get "Month 1", "Month 2", etc.
+        ytdMonths.forEach(month => {
+          const monthKey = `Month ${month.fyMonthNumber}`
+          const value = monthData[monthKey] || 0
+          total += parseFloat(value) || 0
+        })
+      }
+    })
     return total
   }
 
-  const uploadedYtdActualYtdTotal = calculateUploadedYtdTotal(uploadedFinancials.ytdActual, 'ClientDetail-YtdActual')
-  const uploadedBudgetYtdTotal = calculateUploadedYtdTotal(uploadedFinancials.budget, 'ClientDetail-Budget')
-  const uploadedYtd1YtdTotal = calculateUploadedYtdTotal(uploadedFinancials.ytd1, 'ClientDetail-Ytd1')
+  // Helper to calculate full year from monthly data (for budget - sum all monthly values) - same as Dashboard
+  const calculateFullYearFromMonthly = (records) => {
+    let total = 0
+    records.forEach(record => {
+      const monthData = record.monthlyData || record.monthlyValues || {}
+      // Sum all monthly values (budget uses "Month 1", "Month 2", etc. format)
+      if (monthData && typeof monthData === 'object') {
+        const monthlyTotal = Object.values(monthData).reduce((sum, value) => {
+          return sum + (parseFloat(value) || 0)
+        }, 0)
+        total += monthlyTotal || (record.total || 0)
+      } else {
+        total += (record.total || 0)
+      }
+    })
+    return total
+  }
+
+  // Helper to calculate historical year total from monthly data - same as Dashboard
+  const calculateHistoricalYearTotal = (records) => {
+    let total = 0
+    records.forEach(record => {
+      const monthData = record.monthlyData || record.monthlyValues || {}
+      // Sum all monthly values
+      const monthlyTotal = Object.values(monthData).reduce((sum, value) => {
+        return sum + (parseFloat(value) || 0)
+      }, 0)
+      total += monthlyTotal || (record.total || 0)
+    })
+    return total
+  }
+
+  // Helper to calculate YTD from historical data (only up to reporting month) - same as Dashboard
+  const calculateYtdFromHistorical = (records) => {
+    let total = 0
+    records.forEach(record => {
+      const monthData = record.monthlyData || record.monthlyValues || {}
+      if (ytdMonths.length > 0) {
+        // Sum only YTD months (Month 1 through Month N where N is reporting month)
+        ytdMonths.forEach(month => {
+          const monthKey = `Month ${month.fyMonthNumber}`
+          const value = monthData[monthKey] || 0
+          total += parseFloat(value) || 0
+        })
+      } else {
+        // Fallback: sum all if no YTD months available
+        const monthlyTotal = Object.values(monthData).reduce((sum, value) => {
+          return sum + (parseFloat(value) || 0)
+        }, 0)
+        total += monthlyTotal || (record.total || 0)
+      }
+    })
+    return total
+  }
+
+  // Helper to calculate YTD budget (only months up to reporting month) - same as Dashboard
+  const calculateYtdBudget = (records) => {
+    let total = 0
+    records.forEach(record => {
+      const monthData = record.monthlyData || record.monthlyValues || {}
+      if (ytdMonths.length > 0) {
+        // Sum only YTD months for budget
+        ytdMonths.forEach(month => {
+          const monthKey = `Month ${month.fyMonthNumber}`
+          const value = monthData[monthKey] || 0
+          total += parseFloat(value) || 0
+        })
+      } else {
+        // Fallback: use total if no monthly data
+        total += (record.total || 0)
+      }
+    })
+    return total
+  }
+
+  // Calculate totals from uploaded data (same logic as Dashboard)
+  const totalYtd = calculateYtdFromMonthly(uploadedFinancials.ytdActual)
+  const totalFy2024 = calculateHistoricalYearTotal(uploadedFinancials.ytd1) // YTD-1 = FY 2024
+  const totalFy2023 = calculateHistoricalYearTotal(uploadedFinancials.ytd2) // YTD-2 = FY 2023
+  const totalFy2022 = calculateHistoricalYearTotal(uploadedFinancials.ytd3) // YTD-3 = FY 2022
+  const totalBudget = calculateFullYearFromMonthly(uploadedFinancials.budget)
+  
+  // Calculate YTD values for budget and historical years
+  const ytdBudget = calculateYtdBudget(uploadedFinancials.budget)
+  const ytdFy2024 = calculateYtdFromHistorical(uploadedFinancials.ytd1) // YTD-1 = FY 2024 YTD
+  const ytdFy2023 = calculateYtdFromHistorical(uploadedFinancials.ytd2) // YTD-2 = FY 2023 YTD
+  const ytdFy2022 = calculateYtdFromHistorical(uploadedFinancials.ytd3) // YTD-3 = FY 2022 YTD
+  
+  // Full year totals (sum of all months)
+  const fullYearYtdActual = calculateFullYearFromMonthly(uploadedFinancials.ytdActual)
+
+  // Calculate forecast from saved financials and monthly forecasts (same logic as Dashboard)
+  let totalForecastingMonths = 0
+  const monthForecastTotals = {}
+  
+  // Initialize month forecasts
+  remainingMonthsData.slice(0, 4).forEach(month => {
+    const monthKey = `${month.year}-${String(month.calendarMonth + 1).padStart(2, '0')}`
+    monthForecastTotals[monthKey] = 0
+  })
+
+  // Legacy product lines to exclude
+  const legacyProductLines = ['general', 'consulting']
+
+  financials.forEach(cf => {
+    const productLine = (cf.productLine || '').toLowerCase().replace(/\s+/g, '')
+    if (legacyProductLines.includes(productLine)) return
+
+    // Get monthly forecasts
+    const months = cf.months || {}
+    remainingMonthsData.slice(0, 4).forEach(month => {
+      const monthKey = `${month.year}-${String(month.calendarMonth + 1).padStart(2, '0')}`
+      const monthValue = months[monthKey] || 0
+      monthForecastTotals[monthKey] = (monthForecastTotals[monthKey] || 0) + (parseFloat(monthValue) || 0)
+    })
+  })
+
+  // Calculate full year forecast as YTD + sum of forecasting months (same as Dashboard)
+  totalForecastingMonths = Object.values(monthForecastTotals).reduce((sum, value) => sum + (parseFloat(value) || 0), 0)
+  const calculatedFullYear = totalYtd + totalForecastingMonths
 
   // Check if we have uploaded financial data
   const hasUploadedFinancials = uploadedFinancials.ytdActual.length > 0 || uploadedFinancials.budget.length > 0
 
-  // Calculate remaining months forecast (Full Year Forecast - YTD from forecast data)
-  const remainingMonthsForecast = Math.max(0, forecastTotal - ytdTotal)
-
-  // Effective Full Year Forecast = Uploaded YTD Actual + Remaining Months Forecast
-  // If no forecast has been done, Full Year Forecast should at minimum equal YTD Actual
-  const effectiveYtdActual = hasUploadedFinancials ? uploadedYtdActualYtdTotal : ytdTotal
-  const effectiveFullYearForecast = effectiveYtdActual + remainingMonthsForecast
+  // Use uploaded YTD if available, otherwise fallback to financials YTD
+  const effectiveYtdActual = hasUploadedFinancials ? totalYtd : financials.reduce((sum, f) => sum + (f.history?.currentYearYTD || 0), 0)
+  const effectiveFullYearForecast = hasUploadedFinancials ? calculatedFullYear : financials.reduce((sum, f) => sum + (f.fullYearForecast || 0), 0)
 
   // Outstanding tasks
   const pendingTasks = followUpTasks.filter(t => t.status === 'pending')
@@ -1030,67 +1110,139 @@ const ClientDetail = () => {
           <p className="client-type">{client.type || 'N/A'} {client.industry && `• ${client.industry}`}</p>
         </div>
         <div className="header-actions">
-          <button
-            className="financial-btn"
-            onClick={() => navigate(`/financial-editor/${id}`)}
-          >
-            Financial Editor
-          </button>
           <Link to={`/clients/${id}/edit`} className="edit-btn">
             Edit Client
           </Link>
         </div>
       </div>
 
-      {/* Quick Stats Bar */}
-      <div className="quick-stats-bar">
-        <div className="quick-stat">
-          <span className="stat-icon">📊</span>
-          <div className="stat-content">
-            <span className="stat-value">{formatCurrency(hasUploadedFinancials ? uploadedYtdActualYtdTotal : ytdTotal)}</span>
-            <span className="stat-label">YTD Actual</span>
-          </div>
-        </div>
-        <div className="quick-stat">
-          <span className="stat-icon">💰</span>
-          <div className="stat-content">
-            <span className="stat-value">{formatCurrency(effectiveFullYearForecast)}</span>
-            <span className="stat-label">Full Year Forecast</span>
-          </div>
-        </div>
-        {uploadedBudgetTotal > 0 && (
-          <div className="quick-stat">
-            <span className="stat-icon">📋</span>
-            <div className="stat-content">
-              <span className="stat-value">{formatCurrency(uploadedBudgetTotal)}</span>
-              <span className="stat-label">Full Year Budget</span>
+      {/* Financial Performance - Same layout as Dashboard (shown at top) */}
+      {hasUploadedFinancials && (
+        <div className="dashboard-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '30px' }}>
+          {/* Financial Performance Widget */}
+          <div className="dashboard-widget financial-dashboard">
+            <div className="widget-header">
+              <h2>Financial Performance</h2>
+              <Link to={`/financial-editor/${id}`} className="edit-link">
+                Edit
+              </Link>
+            </div>
+            <div className="financial-summary">
+              <div className="financial-section">
+                <div className="financial-section-header">Prior Year Actuals</div>
+                <div className="financial-item">
+                  <span className="financial-label">FY 2022</span>
+                  <span className="financial-value">{formatCurrency(totalFy2022)}</span>
+                </div>
+                <div className="financial-item">
+                  <span className="financial-label">FY 2023</span>
+                  <span className="financial-value">{formatCurrency(totalFy2023)}</span>
+                </div>
+                <div className="financial-item">
+                  <span className="financial-label">FY 2024</span>
+                  <span className="financial-value">{formatCurrency(totalFy2024)}</span>
+                </div>
+              </div>
+
+              <div className="financial-section">
+                <div className="financial-section-header-with-value">
+                  <span className="financial-section-header-text">YTD Actual ({fySettings?.reportingMonth || 'October'})</span>
+                  <span className="financial-value">{formatCurrency(totalYtd)}</span>
+                </div>
+              </div>
+
+              <div className="financial-section">
+                <div className="financial-section-header">Forecasting Months</div>
+                {remainingMonthsData.length > 0 ? (
+                  <div 
+                    className="forecasting-months-grid"
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(3, 1fr)',
+                      gap: '10px',
+                      marginTop: '8px',
+                      width: '100%',
+                      boxSizing: 'border-box'
+                    }}
+                  >
+                    {remainingMonthsData.slice(0, 4).map((month, idx) => {
+                      const monthKey = `${month.year}-${String(month.calendarMonth + 1).padStart(2, '0')}`
+                      const monthValue = monthForecastTotals[monthKey] || 0
+                      return (
+                        <div 
+                          key={idx} 
+                          className="forecasting-month-item"
+                          style={{
+                            display: 'flex',
+                            flexDirection: 'column'
+                          }}
+                        >
+                          <span className="forecasting-month-label">{month.name}</span>
+                          <span className="forecasting-month-value">{formatCurrency(monthValue)}</span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <div style={{ padding: '8px 0', color: '#666' }}>No forecasting months available</div>
+                )}
+              </div>
+
+              <div className="financial-section">
+                <div className="financial-section-header-with-value">
+                  <span className="financial-section-header-text">Full Year Forecast</span>
+                  <span className="financial-value">{formatCurrency(calculatedFullYear)}</span>
+                </div>
+              </div>
+
+              <div className="financial-section">
+                <div className="financial-section-header-with-value">
+                  <span className="financial-section-header-text">Budget</span>
+                  <span className="financial-value">{formatCurrency(totalBudget)}</span>
+                </div>
+              </div>
             </div>
           </div>
-        )}
-        <div className="quick-stat warning">
-          <span className="stat-icon">⚠️</span>
-          <div className="stat-content">
-            <span className="stat-value">{formatCurrency(totalOutstanding)}</span>
-            <span className="stat-label">Outstanding</span>
-          </div>
-        </div>
-        {userRole?.id !== 'salesperson' && (
-          <div className="quick-stat">
-            <span className="stat-icon">📝</span>
-            <div className="stat-content">
-              <span className="stat-value">{pendingTasks.length}</span>
-              <span className="stat-label">Pending Tasks</span>
+
+          {/* YTD Financial Performance Widget */}
+          <div className="dashboard-widget financial-dashboard">
+            <div className="widget-header">
+              <h2>YTD Financial Performance</h2>
+            </div>
+            <div className="financial-summary">
+              <div className="financial-section">
+                <div className="financial-section-header">Prior Year YTD Actuals</div>
+                <div className="financial-item">
+                  <span className="financial-label">FY 2022 YTD</span>
+                  <span className="financial-value">{formatCurrency(ytdFy2022)}</span>
+                </div>
+                <div className="financial-item">
+                  <span className="financial-label">FY 2023 YTD</span>
+                  <span className="financial-value">{formatCurrency(ytdFy2023)}</span>
+                </div>
+                <div className="financial-item">
+                  <span className="financial-label">FY 2024 YTD</span>
+                  <span className="financial-value">{formatCurrency(ytdFy2024)}</span>
+                </div>
+              </div>
+
+              <div className="financial-section">
+                <div className="financial-section-header-with-value">
+                  <span className="financial-section-header-text">YTD Actual ({fySettings?.reportingMonth || 'October'})</span>
+                  <span className="financial-value">{formatCurrency(totalYtd)}</span>
+                </div>
+              </div>
+
+              <div className="financial-section">
+                <div className="financial-section-header-with-value">
+                  <span className="financial-section-header-text">YTD Budget</span>
+                  <span className="financial-value">{formatCurrency(ytdBudget)}</span>
+                </div>
+              </div>
             </div>
           </div>
-        )}
-        <div className="quick-stat">
-          <span className="stat-icon">🤝</span>
-          <div className="stat-content">
-            <span className="stat-value">{interactions.length}</span>
-            <span className="stat-label">Interactions</span>
-          </div>
         </div>
-      </div>
+      )}
 
       {/* Tabs */}
       <div className="client-tabs">
@@ -1099,18 +1251,6 @@ const ClientDetail = () => {
           onClick={() => setActiveTab('overview')}
         >
           Overview
-        </button>
-        <button
-          className={activeTab === 'forecast' ? 'active' : ''}
-          onClick={() => setActiveTab('forecast')}
-        >
-          Forecast
-        </button>
-        <button
-          className={activeTab === 'financials' ? 'active' : ''}
-          onClick={() => setActiveTab('financials')}
-        >
-          Invoices &amp; Quotes
         </button>
         <button
           className={activeTab === 'interactions' ? 'active' : ''}
@@ -1379,110 +1519,6 @@ const ClientDetail = () => {
       {/* Tab Content */}
       {activeTab === 'overview' && (
         <div className="tab-content">
-          {/* Financial Summary Section - Similar to Financial Dashboard */}
-          {hasUploadedFinancials && (
-            <div className="financial-summary-section">
-              <h2 className="section-title">Financial Summary - FY {fyInfo?.currentFinancialYear}</h2>
-
-              {/* YTD Section */}
-              <div className="financial-cards-row">
-                <div className="financial-card actual">
-                  <div className="card-header">
-                    <h4>Actual YTD</h4>
-                    <span className="year-badge">{fyInfo?.currentFinancialYear}</span>
-                  </div>
-                  <div className="card-value">{formatCurrency(uploadedYtdActualYtdTotal)}</div>
-                  <div className="card-label">{fySettings?.reportingMonth}</div>
-                </div>
-
-                <div className="financial-card budget">
-                  <div className="card-header">
-                    <h4>Budget YTD</h4>
-                    <span className="year-badge">{fyInfo?.currentFinancialYear}</span>
-                  </div>
-                  <div className="card-value">{formatCurrency(uploadedBudgetYtdTotal)}</div>
-                  <div className="card-label">{fySettings?.reportingMonth}</div>
-                </div>
-
-                <div className="financial-card prior">
-                  <div className="card-header">
-                    <h4>Prior Year YTD</h4>
-                    <span className="year-badge">{calculateFinancialYear(fyInfo?.currentFinancialYear, -1)}</span>
-                  </div>
-                  <div className="card-value">{formatCurrency(uploadedYtd1YtdTotal)}</div>
-                  <div className="card-label">{fySettings?.reportingMonth}</div>
-                </div>
-              </div>
-
-              {/* YTD Comparisons */}
-              <div className="comparison-row">
-                <div className={`comparison-card ${uploadedYtdActualYtdTotal >= uploadedBudgetYtdTotal ? 'positive' : 'negative'}`}>
-                  <span className="comparison-label">Actual YTD vs Budget YTD</span>
-                  <span className="comparison-value">
-                    {uploadedBudgetYtdTotal > 0 ? `${uploadedYtdActualYtdTotal >= uploadedBudgetYtdTotal ? '+' : ''}${(((uploadedYtdActualYtdTotal - uploadedBudgetYtdTotal) / uploadedBudgetYtdTotal) * 100).toFixed(1)}%` : 'N/A'}
-                  </span>
-                  <span className="comparison-detail">{formatCurrency(uploadedYtdActualYtdTotal - uploadedBudgetYtdTotal)}</span>
-                </div>
-                <div className={`comparison-card ${uploadedYtdActualYtdTotal >= uploadedYtd1YtdTotal ? 'positive' : 'negative'}`}>
-                  <span className="comparison-label">Actual YTD vs Prior Year YTD</span>
-                  <span className="comparison-value">
-                    {uploadedYtd1YtdTotal > 0 ? `${uploadedYtdActualYtdTotal >= uploadedYtd1YtdTotal ? '+' : ''}${(((uploadedYtdActualYtdTotal - uploadedYtd1YtdTotal) / uploadedYtd1YtdTotal) * 100).toFixed(1)}%` : 'N/A'}
-                  </span>
-                  <span className="comparison-detail">{formatCurrency(uploadedYtdActualYtdTotal - uploadedYtd1YtdTotal)}</span>
-                </div>
-              </div>
-
-              {/* Full Year Section */}
-              <h3 className="subsection-title">Full Year Totals</h3>
-              <div className="financial-cards-row">
-                <div className="financial-card actual">
-                  <div className="card-header">
-                    <h4>Actual Full Year</h4>
-                    <span className="year-badge">{fyInfo?.currentFinancialYear}</span>
-                  </div>
-                  <div className="card-value">{formatCurrency(uploadedYtdActualTotal)}</div>
-                  <div className="card-label">{uploadedFinancials.ytdActual.length} records</div>
-                </div>
-
-                <div className="financial-card budget">
-                  <div className="card-header">
-                    <h4>Budget Full Year</h4>
-                    <span className="year-badge">{fyInfo?.currentFinancialYear}</span>
-                  </div>
-                  <div className="card-value">{formatCurrency(uploadedBudgetTotal)}</div>
-                  <div className="card-label">{uploadedFinancials.budget.length} records</div>
-                </div>
-
-                <div className="financial-card prior">
-                  <div className="card-header">
-                    <h4>Prior Year Full</h4>
-                    <span className="year-badge">{calculateFinancialYear(fyInfo?.currentFinancialYear, -1)}</span>
-                  </div>
-                  <div className="card-value">{formatCurrency(uploadedYtd1Total)}</div>
-                  <div className="card-label">{uploadedFinancials.ytd1.length} records</div>
-                </div>
-              </div>
-
-              {/* Full Year Comparisons */}
-              <div className="comparison-row">
-                <div className={`comparison-card ${uploadedYtdActualTotal >= uploadedBudgetTotal ? 'positive' : 'negative'}`}>
-                  <span className="comparison-label">Actual vs Budget</span>
-                  <span className="comparison-value">
-                    {uploadedBudgetTotal > 0 ? `${uploadedYtdActualTotal >= uploadedBudgetTotal ? '+' : ''}${(((uploadedYtdActualTotal - uploadedBudgetTotal) / uploadedBudgetTotal) * 100).toFixed(1)}%` : 'N/A'}
-                  </span>
-                  <span className="comparison-detail">{formatCurrency(uploadedYtdActualTotal - uploadedBudgetTotal)}</span>
-                </div>
-                <div className={`comparison-card ${uploadedYtdActualTotal >= uploadedYtd1Total ? 'positive' : 'negative'}`}>
-                  <span className="comparison-label">Actual vs Prior Year</span>
-                  <span className="comparison-value">
-                    {uploadedYtd1Total > 0 ? `${uploadedYtdActualTotal >= uploadedYtd1Total ? '+' : ''}${(((uploadedYtdActualTotal - uploadedYtd1Total) / uploadedYtd1Total) * 100).toFixed(1)}%` : 'N/A'}
-                  </span>
-                  <span className="comparison-detail">{formatCurrency(uploadedYtdActualTotal - uploadedYtd1Total)}</span>
-                </div>
-              </div>
-            </div>
-          )}
-
           <div className="overview-grid">
             {/* Client Information Card */}
             <div className="info-card">
@@ -1645,374 +1681,8 @@ const ClientDetail = () => {
         </div>
       )}
 
-      {activeTab === 'forecast' && (
-        <div className="tab-content">
-          <div className="forecast-header">
-            <h2>Financial Forecast - FY {fyInfo?.currentFinancialYear || 'N/A'}</h2>
-            <button
-              className="edit-forecast-btn"
-              onClick={() => navigate(`/financial-editor/${id}`)}
-            >
-              Edit Forecast
-            </button>
-          </div>
+      {/* Forecast tab and content removed as per design change */}
 
-          {/* Forecast Summary Cards */}
-          <div className="forecast-summary-cards">
-            <div className="forecast-card">
-              <span className="forecast-label">YTD Actual</span>
-              <span className="forecast-value">{formatCurrency(effectiveYtdActual)}</span>
-            </div>
-            <div className="forecast-card">
-              <span className="forecast-label">Remaining Forecast</span>
-              <span className="forecast-value">{formatCurrency(remainingMonthsForecast)}</span>
-            </div>
-            <div className="forecast-card highlight">
-              <span className="forecast-label">Full Year Forecast</span>
-              <span className="forecast-value">{formatCurrency(effectiveFullYearForecast)}</span>
-            </div>
-            <div className="forecast-card">
-              <span className="forecast-label">Pipeline Value</span>
-              <span className="forecast-value">{formatCurrency(client.pipelineValue || 0)}</span>
-            </div>
-          </div>
-
-          {/* Forecast by Product Line */}
-          <div className="forecast-by-product">
-            <div className="forecast-header-inline">
-              <h3>Forecast by Product Line</h3>
-              <span className="click-hint">Click any product line to edit calculations</span>
-            </div>
-            {financials.length > 0 ? (
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Product Line</th>
-                    <th>Previous Year</th>
-                    <th>YTD</th>
-                    <th>Forecast Remaining</th>
-                    <th>Full Year</th>
-                    <th>Growth</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {financials.map((f) => {
-                    const prevYear = f.history?.yearMinus1 || 0
-                    const ytd = f.history?.currentYearYTD || 0
-                    const fullYear = f.fullYearForecast || 0
-                    const remaining = fullYear - ytd
-                    const growth = prevYear > 0 ? ((fullYear - prevYear) / prevYear * 100).toFixed(1) : 'N/A'
-
-                    return (
-                      <tr
-                        key={f.id}
-                        className="clickable-row"
-                        onClick={() => openProductLineModal(f)}
-                        title="Click to edit forecast details"
-                      >
-                        <td>
-                          <strong className="product-line-link">{f.productLine}</strong>
-                        </td>
-                        <td>{formatCurrency(prevYear)}</td>
-                        <td>{formatCurrency(ytd)}</td>
-                        <td>{formatCurrency(remaining)}</td>
-                        <td><strong>{formatCurrency(fullYear)}</strong></td>
-                        <td>
-                          {typeof growth === 'number' || growth !== 'N/A' ? (
-                            <span className={parseFloat(growth) >= 0 ? 'growth-positive' : 'growth-negative'}>
-                              {parseFloat(growth) >= 0 ? '+' : ''}{growth}%
-                            </span>
-                          ) : (
-                            <span className="growth-na">N/A</span>
-                          )}
-                        </td>
-                      </tr>
-                    )
-                  })}
-                  <tr className="totals-row">
-                    <td><strong>TOTAL</strong></td>
-                    <td><strong>{formatCurrency(financials.reduce((s, f) => s + (f.history?.yearMinus1 || 0), 0))}</strong></td>
-                    <td><strong>{formatCurrency(effectiveYtdActual)}</strong></td>
-                    <td><strong>{formatCurrency(remainingMonthsForecast)}</strong></td>
-                    <td><strong>{formatCurrency(effectiveFullYearForecast)}</strong></td>
-                    <td></td>
-                  </tr>
-                </tbody>
-              </table>
-            ) : (
-              <div className="no-data-card">
-                <p>No forecast data available for this client.</p>
-                <button onClick={() => navigate(`/financial-editor/${id}`)}>Create Forecast</button>
-              </div>
-            )}
-          </div>
-
-          {/* Active Deals */}
-          {deals.length > 0 && (
-            <div className="deals-section">
-              <h3>Active Deals in Pipeline</h3>
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Deal Name</th>
-                    <th>Product</th>
-                    <th>Value</th>
-                    <th>Stage</th>
-                    <th>Probability</th>
-                    <th>Expected Close</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {deals.map((deal) => (
-                    <tr key={deal.id}>
-                      <td>{deal.name || 'Unnamed Deal'}</td>
-                      <td>{deal.product || 'N/A'}</td>
-                      <td>{formatCurrency(deal.value)}</td>
-                      <td>
-                        <span className={`stage-badge stage-${deal.stage}`}>
-                          {deal.stage?.replace('-', ' ') || 'N/A'}
-                        </span>
-                      </td>
-                      <td>{deal.probability || 0}%</td>
-                      <td>{formatDate(deal.expectedCloseDate)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      )}
-
-      {activeTab === 'financials' && (
-        <div className="tab-content">
-          {/* Financial Summary */}
-          <div className="financial-overview">
-            <h2>Financial Summary</h2>
-            <div className="financial-cards">
-              <div className="financial-card">
-                <span className="card-label">Total Invoiced</span>
-                <span className="card-value">{formatCurrency(totalInvoiced)}</span>
-              </div>
-              <div className="financial-card">
-                <span className="card-label">Total Paid</span>
-                <span className="card-value positive">{formatCurrency(totalPaid)}</span>
-              </div>
-              <div className="financial-card">
-                <span className="card-label">Outstanding</span>
-                <span className="card-value warning">{formatCurrency(totalOutstanding)}</span>
-              </div>
-              <div className="financial-card">
-                <span className="card-label">Overdue</span>
-                <span className="card-value danger">{formatCurrency(totalOverdue)}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Budget & Historical Data (from Accountant Uploads) */}
-          {(uploadedFinancials.budget.length > 0 || uploadedFinancials.ytd1.length > 0) && (() => {
-            // Calculate YTD totals based on reporting month
-            // ytdMonthNames will be ["Month 1", "Month 2", ...] up to reporting month
-            const ytdMonthNames = (fyInfo?.ytdMonths || []).map(m => m.name)
-            const ytdMonthCount = ytdMonthNames.length
-
-            const calculateYtdTotal = (data) => {
-              if (!data || ytdMonthNames.length === 0) return 0
-              return data.reduce((sum, record) => {
-                const monthData = record.monthlyData || record.monthlyValues || {}
-                let recordYtdTotal = 0
-                ytdMonthNames.forEach(month => {
-                  recordYtdTotal += monthData[month] || 0
-                })
-                return sum + recordYtdTotal
-              }, 0)
-            }
-
-            const budgetYtdTotal = calculateYtdTotal(uploadedFinancials.budget)
-            const ytd1YtdTotal = calculateYtdTotal(uploadedFinancials.ytd1)
-            const ytd2YtdTotal = calculateYtdTotal(uploadedFinancials.ytd2)
-            const ytd3YtdTotal = calculateYtdTotal(uploadedFinancials.ytd3)
-
-            // Full year totals
-            const budgetFullYear = uploadedFinancials.budget.reduce((sum, d) => sum + (d.total || 0), 0)
-            const ytd1FullYear = uploadedFinancials.ytd1.reduce((sum, d) => sum + (d.total || 0), 0)
-            const ytd2FullYear = uploadedFinancials.ytd2.reduce((sum, d) => sum + (d.total || 0), 0)
-            const ytd3FullYear = uploadedFinancials.ytd3.reduce((sum, d) => sum + (d.total || 0), 0)
-
-            // Reporting month info
-            const reportingMonth = fySettings?.reportingMonth || 'February'
-            const reportingFyMonth = fyInfo?.reportingFyMonth || ytdMonthCount
-
-            return (
-              <div className="budget-section">
-                {/* YTD Section - Shows First */}
-                <h2>Year-to-Date (YTD) - {reportingMonth}</h2>
-                <div className="financial-cards">
-                  <div className="financial-card budget">
-                    <span className="card-label">Budget YTD {fySettings?.currentFinancialYear}</span>
-                    <span className="card-value">{formatCurrency(budgetYtdTotal)}</span>
-                  </div>
-                  <div className="financial-card ytd1">
-                    <span className="card-label">Prior Year YTD</span>
-                    <span className="card-value">{formatCurrency(ytd1YtdTotal)}</span>
-                  </div>
-                  <div className="financial-card ytd2">
-                    <span className="card-label">2 Years Ago YTD</span>
-                    <span className="card-value">{formatCurrency(ytd2YtdTotal)}</span>
-                  </div>
-                  <div className="financial-card ytd3">
-                    <span className="card-label">3 Years Ago YTD</span>
-                    <span className="card-value">{formatCurrency(ytd3YtdTotal)}</span>
-                  </div>
-                </div>
-
-                {/* Full Year Section */}
-                <h2 style={{ marginTop: '24px' }}>Full Year Totals</h2>
-                <div className="financial-cards">
-                  <div className="financial-card budget">
-                    <span className="card-label">Budget Full Year {fySettings?.currentFinancialYear}</span>
-                    <span className="card-value">{formatCurrency(budgetFullYear)}</span>
-                  </div>
-                  <div className="financial-card ytd1">
-                    <span className="card-label">Prior Year Full</span>
-                    <span className="card-value">{formatCurrency(ytd1FullYear)}</span>
-                  </div>
-                  <div className="financial-card ytd2">
-                    <span className="card-label">2 Years Ago Full</span>
-                    <span className="card-value">{formatCurrency(ytd2FullYear)}</span>
-                  </div>
-                  <div className="financial-card ytd3">
-                    <span className="card-label">3 Years Ago Full</span>
-                    <span className="card-value">{formatCurrency(ytd3FullYear)}</span>
-                  </div>
-                </div>
-
-                {/* By Product Line - Full Year */}
-                {uploadedFinancials.budget.length > 0 && (
-                  <div className="budget-by-product">
-                    <h3>Full Year by Product Line</h3>
-                    <table className="data-table">
-                      <thead>
-                        <tr>
-                          <th>Product Line</th>
-                          <th>Budget</th>
-                          <th>Prior Year</th>
-                          <th>2 Years Ago</th>
-                          <th>3 Years Ago</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {[...new Set([
-                          ...uploadedFinancials.budget.map(d => d.productLine),
-                          ...uploadedFinancials.ytd1.map(d => d.productLine),
-                          ...uploadedFinancials.ytd2.map(d => d.productLine),
-                          ...uploadedFinancials.ytd3.map(d => d.productLine)
-                        ])].filter(Boolean).map(productLine => (
-                          <tr key={productLine}>
-                            <td>{productLine}</td>
-                            <td>{formatCurrency(uploadedFinancials.budget.filter(d => d.productLine === productLine).reduce((sum, d) => sum + (d.total || 0), 0))}</td>
-                            <td>{formatCurrency(uploadedFinancials.ytd1.filter(d => d.productLine === productLine).reduce((sum, d) => sum + (d.total || 0), 0))}</td>
-                            <td>{formatCurrency(uploadedFinancials.ytd2.filter(d => d.productLine === productLine).reduce((sum, d) => sum + (d.total || 0), 0))}</td>
-                            <td>{formatCurrency(uploadedFinancials.ytd3.filter(d => d.productLine === productLine).reduce((sum, d) => sum + (d.total || 0), 0))}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                      <tfoot>
-                        <tr>
-                          <th>Total</th>
-                          <th>{formatCurrency(budgetFullYear)}</th>
-                          <th>{formatCurrency(ytd1FullYear)}</th>
-                          <th>{formatCurrency(ytd2FullYear)}</th>
-                          <th>{formatCurrency(ytd3FullYear)}</th>
-                        </tr>
-                      </tfoot>
-                    </table>
-                  </div>
-                )}
-              </div>
-            )
-          })()}
-
-          {/* All Quotes */}
-          <div className="recent-section">
-            <h2>Quotes ({allQuotes.length})</h2>
-            {allQuotes.length > 0 ? (
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Quote Number</th>
-                    <th>Product</th>
-                    <th>Date</th>
-                    <th>Amount</th>
-                    <th>Valid Until</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {allQuotes.map((quote) => (
-                    <tr key={quote.id}>
-                      <td>{quote.quoteNumber || quote.id}</td>
-                      <td>{quote.product || 'N/A'}</td>
-                      <td>{formatDate(quote.date)}</td>
-                      <td>{formatCurrency(quote.amount)}</td>
-                      <td>{formatDate(quote.validUntil)}</td>
-                      <td>
-                        <span className={`status-badge status-${quote.status?.toLowerCase()}`}>
-                          {quote.status || 'N/A'}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              <p className="no-data">No quotes found</p>
-            )}
-          </div>
-
-          {/* All Invoices */}
-          <div className="recent-section">
-            <h2>Invoices ({allInvoices.length})</h2>
-            {allInvoices.length > 0 ? (
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Invoice Number</th>
-                    <th>Product</th>
-                    <th>Issue Date</th>
-                    <th>Amount</th>
-                    <th>Due Date</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {allInvoices.map((invoice) => {
-                    const isOverdue = invoice.status !== 'Paid' && invoice.dueDate &&
-                      (invoice.dueDate.toDate ? invoice.dueDate.toDate() : new Date(invoice.dueDate)) < new Date()
-
-                    return (
-                      <tr key={invoice.id} className={isOverdue ? 'overdue-row' : ''}>
-                        <td>{invoice.invoiceNumber || invoice.id}</td>
-                        <td>{invoice.product || 'N/A'}</td>
-                        <td>{formatDate(invoice.issueDate)}</td>
-                        <td>{formatCurrency(invoice.amount)}</td>
-                        <td className={isOverdue ? 'overdue-text' : ''}>{formatDate(invoice.dueDate)}</td>
-                        <td>
-                          <span className={`status-badge status-${invoice.status?.toLowerCase()} ${isOverdue ? 'overdue' : ''}`}>
-                            {isOverdue ? 'OVERDUE' : (invoice.status || 'N/A')}
-                          </span>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            ) : (
-              <p className="no-data">No invoices found</p>
-            )}
-          </div>
-        </div>
-      )}
 
       {activeTab === 'interactions' && (
         <div className="tab-content">
