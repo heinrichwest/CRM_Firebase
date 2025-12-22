@@ -4,7 +4,8 @@ import {
   getClients,
   getSkillsPartners,
   getFinancialYearSettings,
-  calculateFinancialYearMonths
+  calculateFinancialYearMonths,
+  getClientInteractions
 } from '../services/firestoreService'
 import { getUsers } from '../services/userService'
 import { getFinancialData, UPLOAD_TYPES } from '../services/financialUploadService'
@@ -28,19 +29,14 @@ const Clients = () => {
     ytdRevenue: 0,
     pipelineValue: 0
   })
-
-  const [pipelineSummary, setPipelineSummary] = useState({
-    leadGeneration: 0,
-    contactMade: 0,
-    needsAssessment: 0,
-    dealClosed: 0
-  })
+  const [pipelineFilter, setPipelineFilter] = useState('all') // 'all', 'in-pipeline', 'won', 'lost', 'no-pipeline'
 
   const [users, setUsers] = useState([])
   const [skillsPartners, setSkillsPartners] = useState([])
   const [ytdActualData, setYtdActualData] = useState([])
   const [ytdMonths, setYtdMonths] = useState([])
   const [financialYear, setFinancialYear] = useState('')
+  const [clientRecentActivities, setClientRecentActivities] = useState({}) // { clientId: { type, summary, notes, timestamp } }
   const {
     getTenantId,
     currentUser,
@@ -64,7 +60,7 @@ const Clients = () => {
 
   useEffect(() => {
     filterClients()
-  }, [clients, searchTerm, statusFilter, typeFilter, followUpFilter])
+  }, [clients, searchTerm, statusFilter, typeFilter, followUpFilter, pipelineFilter])
 
   const loadSupportingData = async () => {
     try {
@@ -123,6 +119,28 @@ const Clients = () => {
       }
 
       setClients(filteredClientData)
+
+      // Load most recent interaction for each client
+      const activitiesMap = {}
+      await Promise.all(
+        filteredClientData.map(async (client) => {
+          try {
+            const interactions = await getClientInteractions(client.id, {})
+            if (interactions && interactions.length > 0) {
+              const mostRecent = interactions[0] // Already sorted by timestamp desc
+              activitiesMap[client.id] = {
+                type: mostRecent.type,
+                summary: mostRecent.summary,
+                notes: mostRecent.notes,
+                timestamp: mostRecent.timestamp
+              }
+            }
+          } catch (error) {
+            console.error(`Error loading interactions for client ${client.id}:`, error)
+          }
+        })
+      )
+      setClientRecentActivities(activitiesMap)
 
       // Calculate YTD revenue from uploaded financial data (supports matching by clientId OR clientName)
       const calculateClientYtdRevenue = (clientId, clientName) => {
@@ -279,6 +297,18 @@ const Clients = () => {
       filtered = filtered.filter(client => client.type === typeFilter)
     }
 
+    if (pipelineFilter !== 'all') {
+      filtered = filtered.filter(client => {
+        if (pipelineFilter === 'no-pipeline') {
+          return !client.pipelineStatus
+        }
+        // Compare case-insensitively
+        const clientStatus = (client.pipelineStatus || '').toLowerCase()
+        const filterStatus = pipelineFilter.toLowerCase()
+        return clientStatus === filterStatus
+      })
+    }
+
     if (followUpFilter !== 'all') {
       filtered = filtered.filter(client => {
         const status = getFollowUpStatus(client)
@@ -306,6 +336,70 @@ const Clients = () => {
     return date.toLocaleDateString('en-ZA')
   }
 
+  const formatRecentActivity = (clientId) => {
+    const activity = clientRecentActivities[clientId]
+    const lastContact = clients.find(c => c.id === clientId)?.lastContact
+    
+    // Use interaction timestamp if available, otherwise use lastContact
+    const timestamp = activity?.timestamp || lastContact
+    
+    if (!timestamp && !activity) {
+      return <span className="no-activity">No activity</span>
+    }
+    
+    const date = timestamp?.toDate ? timestamp.toDate() : new Date(timestamp)
+    const now = new Date()
+    const diffTime = now - date
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+    const diffHours = Math.floor(diffTime / (1000 * 60 * 60))
+    const diffMinutes = Math.floor(diffTime / (1000 * 60))
+
+    let timeText = ''
+    if (diffMinutes < 60) {
+      timeText = 'Just now'
+    } else if (diffHours < 24) {
+      timeText = `${diffHours} ${diffHours === 1 ? 'hour' : 'hours'} ago`
+    } else if (diffDays === 0) {
+      timeText = 'Today'
+    } else if (diffDays === 1) {
+      timeText = 'Yesterday'
+    } else if (diffDays < 7) {
+      timeText = `${diffDays} days ago`
+    } else if (diffDays < 30) {
+      const weeks = Math.floor(diffDays / 7)
+      timeText = `${weeks} ${weeks === 1 ? 'week' : 'weeks'} ago`
+    } else {
+      timeText = date.toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined })
+    }
+
+    // Format activity type
+    const formatActivityType = (type) => {
+      if (!type) return ''
+      return type.charAt(0).toUpperCase() + type.slice(1).toLowerCase()
+    }
+
+    // Get activity description
+    const activityDescription = activity?.summary || activity?.notes || ''
+
+    return (
+      <div className="recent-activity-cell">
+        {activity && (
+          <div className="activity-type-badge">
+            {formatActivityType(activity.type)}
+          </div>
+        )}
+        {activityDescription && (
+          <div className="activity-description" title={activityDescription}>
+            {activityDescription.length > 50 ? `${activityDescription.substring(0, 50)}...` : activityDescription}
+          </div>
+        )}
+        <div className={`activity-time ${diffMinutes < 60 ? 'recent' : diffDays === 0 ? 'today' : diffDays === 1 ? 'yesterday' : diffDays < 7 ? 'week' : diffDays < 30 ? 'month' : 'old'}`}>
+          {timeText}
+        </div>
+      </div>
+    )
+  }
+
   if (loading) {
     return (
       <div className="clients">
@@ -324,59 +418,88 @@ const Clients = () => {
         <Link to="/clients/new" className="add-client-btn">+ Add Client</Link>
       </div>
 
-      {/* Pipeline Summary */}
-      <div className="pipeline-summary">
-        <h3>Sales Pipeline Summary</h3>
-        <div className="pipeline-stats">
-          <div className="pipeline-stat">
-            <span className="stat-label">Lead Generation</span>
-            <span className="stat-value">{pipelineSummary.leadGeneration}</span>
-          </div>
-          <div className="pipeline-stat">
-            <span className="stat-label">Contact Made</span>
-            <span className="stat-value">{pipelineSummary.contactMade}</span>
-          </div>
-          <div className="pipeline-stat">
-            <span className="stat-label">Needs Assessment</span>
-            <span className="stat-value">{pipelineSummary.needsAssessment}</span>
-          </div>
-          <div className="pipeline-stat">
-            <span className="stat-label">Deal Closed</span>
-            <span className="stat-value">{pipelineSummary.dealClosed}</span>
-          </div>
-        </div>
-      </div>
+      {/* Top Stats: Pipeline & Follow-Ups */}
+      {clients.length > 0 && (
+        <div className="clients-stats">
+          <div className="stats-group">
+            <span className="stats-title">Pipeline</span>
+            {(() => {
+              // Get all unique pipeline statuses from clients
+              const statusCounts = {}
+              clients.forEach(c => {
+                const status = c.pipelineStatus
+                if (status) {
+                  statusCounts[status] = (statusCounts[status] || 0) + 1
+                } else {
+                  statusCounts['no-pipeline'] = (statusCounts['no-pipeline'] || 0) + 1
+                }
+              })
 
-      {/* Client Overview */}
-      <div className="client-overview">
-        <h3>Client Overview</h3>
-        <div className="overview-stats">
-          <div className="overview-stat">
-            <span className="stat-label">Total Clients</span>
-            <span className="stat-value">{summary.total}</span>
+              // Format status name for display
+              const formatStatusName = (status) => {
+                if (status === 'no-pipeline') return 'No Pipeline'
+                return status
+                  .split('-')
+                  .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                  .join(' ')
+              }
+
+              // Get all statuses sorted (no-pipeline and won/lost at the end)
+              const sortedStatuses = Object.keys(statusCounts).sort((a, b) => {
+                if (a === 'no-pipeline') return 1
+                if (b === 'no-pipeline') return -1
+                if (a === 'won') return 1
+                if (b === 'won') return -1
+                if (a === 'lost') return 1
+                if (b === 'lost') return -1
+                return a.localeCompare(b)
+              })
+
+              return (
+                <div className="stats-chips">
+                  {sortedStatuses.map(status => (
+                    <button
+                      key={status}
+                      type="button"
+                      className={`stats-chip ${pipelineFilter === status ? 'active' : ''}`}
+                      onClick={() => setPipelineFilter(pipelineFilter === status ? 'all' : status)}
+                    >
+                      {formatStatusName(status)} <span className="chip-count">{statusCounts[status]}</span>
+                    </button>
+                  ))}
+                </div>
+              )
+            })()}
           </div>
-          <div className="overview-stat">
-            <span className="stat-label">Active</span>
-            <span className="stat-value">{summary.active}</span>
-          </div>
-          <div className="overview-stat">
-            <span className="stat-label">Pending</span>
-            <span className="stat-value">{summary.pending}</span>
-          </div>
-          <div className="overview-stat">
-            <span className="stat-label">Prospects</span>
-            <span className="stat-value">{summary.prospects}</span>
-          </div>
-          <div className="overview-stat">
-            <span className="stat-label">YTD Actual</span>
-            <span className="stat-value">{formatCurrency(summary.ytdRevenue)}</span>
-          </div>
-          <div className="overview-stat">
-            <span className="stat-label">Pipeline Value</span>
-            <span className="stat-value">{formatCurrency(summary.pipelineValue)}</span>
+
+          <div className="stats-group">
+            <span className="stats-title">Follow-Ups</span>
+            {(() => {
+              const overdueCount = clients.filter(c => getFollowUpStatus(c) === 'overdue').length
+              const noFollowUpCount = clients.filter(c => getFollowUpStatus(c) === 'none').length
+
+              return (
+                <div className="stats-chips">
+                  <button
+                    type="button"
+                    className={`stats-chip ${followUpFilter === 'overdue' ? 'active' : ''}`}
+                    onClick={() => setFollowUpFilter(followUpFilter === 'overdue' ? 'all' : 'overdue')}
+                  >
+                    Overdue <span className="chip-count">{overdueCount}</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={`stats-chip ${followUpFilter === 'none' ? 'active' : ''}`}
+                    onClick={() => setFollowUpFilter(followUpFilter === 'none' ? 'all' : 'none')}
+                  >
+                    No Follow-Up <span className="chip-count">{noFollowUpCount}</span>
+                  </button>
+                </div>
+              )
+            })()}
           </div>
         </div>
-      </div>
+      )}
 
       {/* Filters and Search */}
       <div className="clients-filters">
@@ -432,11 +555,11 @@ const Clients = () => {
               <th>Client Name</th>
               <th>Type</th>
               <th>Status</th>
+              <th>Pipeline Status</th>
               <th>Follow-Up</th>
               {hasManagerView && <th>Sales Person</th>}
               {hasManagerView && <th>Skills Partner</th>}
-              <th>Last Contact</th>
-              <th>YTD Actual</th>
+              <th>Recent Activity</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -454,6 +577,27 @@ const Clients = () => {
                     <span className={`status-badge status-${client.status?.toLowerCase()}`}>
                       {client.status || 'N/A'}
                     </span>
+                  </td>
+                  <td>
+                    {(() => {
+                      const pipelineStatus = client.pipelineStatus
+                      if (!pipelineStatus) {
+                        return <span className="pipeline-badge no-pipeline">No Pipeline</span>
+                      }
+                      const statusLower = pipelineStatus.toLowerCase()
+                      // Format the status name for display
+                      const formatPipelineStatus = (status) => {
+                        return status
+                          .split('-')
+                          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                          .join(' ')
+                      }
+                      return (
+                        <span className={`pipeline-badge pipeline-${statusLower}`}>
+                          {formatPipelineStatus(pipelineStatus)}
+                        </span>
+                      )
+                    })()}
                   </td>
                   <td>
                     {(() => {
@@ -493,8 +637,7 @@ const Clients = () => {
                       </span>
                     </td>
                   )}
-                  <td>{formatDate(client.lastContact)}</td>
-                  <td>{formatCurrency(getClientYtdRevenue(client.id, client.name))}</td>
+                  <td>{formatRecentActivity(client.id)}</td>
                   <td>
                     <Link to={`/clients/${client.id}`} className="action-link">View</Link>
                     <Link to={`/clients/${client.id}/edit`} className="action-link">Edit</Link>

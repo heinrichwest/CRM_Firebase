@@ -31,6 +31,13 @@ const Dashboard = () => {
     fullYear: 0,
     budget: 0
   })
+  const [ytdFinancialData, setYtdFinancialData] = useState({
+    fy2022: 0,
+    fy2023: 0,
+    fy2024: 0,
+    ytd: 0,
+    budget: 0
+  })
   const [remainingMonths, setRemainingMonths] = useState([])
   const [reportingMonth, setReportingMonth] = useState('')
   const [monthForecasts, setMonthForecasts] = useState({})
@@ -605,6 +612,49 @@ const Dashboard = () => {
         return total
       }
 
+      // Helper to calculate YTD from historical data (only up to reporting month)
+      const calculateYtdFromHistorical = (records) => {
+        let total = 0
+        records.forEach(record => {
+          const monthData = record.monthlyData || record.monthlyValues || {}
+          if (ytdMonths.length > 0) {
+            // Sum only YTD months (Month 1 through Month N where N is reporting month)
+            ytdMonths.forEach(month => {
+              const monthKey = `Month ${month.fyMonthNumber}`
+              const value = monthData[monthKey] || 0
+              total += parseFloat(value) || 0
+            })
+          } else {
+            // Fallback: sum all if no YTD months available
+            const monthlyTotal = Object.values(monthData).reduce((sum, value) => {
+              return sum + (parseFloat(value) || 0)
+            }, 0)
+            total += monthlyTotal || (record.total || 0)
+          }
+        })
+        return total
+      }
+
+      // Helper to calculate YTD budget (only months up to reporting month)
+      const calculateYtdBudget = (records) => {
+        let total = 0
+        records.forEach(record => {
+          const monthData = record.monthlyData || record.monthlyValues || {}
+          if (ytdMonths.length > 0) {
+            // Sum only YTD months for budget
+            ytdMonths.forEach(month => {
+              const monthKey = `Month ${month.fyMonthNumber}`
+              const value = monthData[monthKey] || 0
+              total += parseFloat(value) || 0
+            })
+          } else {
+            // Fallback: use total if no monthly data
+            total += (record.total || 0)
+          }
+        })
+        return total
+      }
+
       // Legacy product lines to exclude completely
       const legacyProductLines = ['general', 'consulting']
 
@@ -696,6 +746,20 @@ const Dashboard = () => {
           fullYear: calculatedFullYear,
           budget: totalBudget
         })
+
+        // Calculate YTD values for the YTD-only block
+        const ytdFy2024 = calculateYtdFromHistorical(myYtd1) // YTD-1 = FY 2024 YTD
+        const ytdFy2023 = calculateYtdFromHistorical(myYtd2) // YTD-2 = FY 2023 YTD
+        const ytdFy2022 = calculateYtdFromHistorical(myYtd3) // YTD-3 = FY 2022 YTD
+        const ytdBudget = calculateYtdBudget(myBudget)
+
+        setYtdFinancialData({
+          fy2022: ytdFy2022,
+          fy2023: ytdFy2023,
+          fy2024: ytdFy2024,
+          ytd: totalYtd, // Current year YTD is the same
+          budget: ytdBudget
+        })
       } else {
         // For manager: aggregate financials from tenant-filtered clients
         const managerClients = filteredClientsData
@@ -785,6 +849,20 @@ const Dashboard = () => {
           forecast: totalForecast,
           fullYear: calculatedFullYear,
           budget: totalBudget
+        })
+
+        // Calculate YTD values for the YTD-only block
+        const ytdFy2024 = calculateYtdFromHistorical(myYtd1) // YTD-1 = FY 2024 YTD
+        const ytdFy2023 = calculateYtdFromHistorical(myYtd2) // YTD-2 = FY 2023 YTD
+        const ytdFy2022 = calculateYtdFromHistorical(myYtd3) // YTD-3 = FY 2022 YTD
+        const ytdBudget = calculateYtdBudget(myBudget)
+
+        setYtdFinancialData({
+          fy2022: ytdFy2022,
+          fy2023: ytdFy2023,
+          fy2024: ytdFy2024,
+          ytd: totalYtd, // Current year YTD is the same
+          budget: ytdBudget
         })
       }
 
@@ -1129,6 +1207,46 @@ const Dashboard = () => {
                 <div className="financial-section-header-with-value">
                   <span className="financial-section-header-text">Budget</span>
                   <span className="financial-value">{formatCurrency(financialData.budget)}</span>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* YTD Financial Dashboard */}
+        <div className="dashboard-widget financial-dashboard">
+          <div className="widget-header">
+            <h2>{isManager ? 'YTD Financial Dashboard' : 'My YTD Financial Performance'}</h2>
+          </div>
+          <div className="financial-summary">
+            <div className="financial-section">
+              <div className="financial-section-header">Prior Year YTD Actuals</div>
+              <div className="financial-item">
+                <span className="financial-label">FY 2022 YTD</span>
+                <span className="financial-value">{formatCurrency(ytdFinancialData.fy2022)}</span>
+              </div>
+              <div className="financial-item">
+                <span className="financial-label">FY 2023 YTD</span>
+                <span className="financial-value">{formatCurrency(ytdFinancialData.fy2023)}</span>
+              </div>
+              <div className="financial-item">
+                <span className="financial-label">FY 2024 YTD</span>
+                <span className="financial-value">{formatCurrency(ytdFinancialData.fy2024)}</span>
+              </div>
+            </div>
+
+            <div className="financial-section">
+              <div className="financial-section-header-with-value">
+                <span className="financial-section-header-text">YTD Actual ({reportingMonth})</span>
+                <span className="financial-value">{formatCurrency(ytdFinancialData.ytd)}</span>
+              </div>
+            </div>
+
+            {!isManager && (
+              <div className="financial-section">
+                <div className="financial-section-header-with-value">
+                  <span className="financial-section-header-text">YTD Budget</span>
+                  <span className="financial-value">{formatCurrency(ytdFinancialData.budget)}</span>
                 </div>
               </div>
             )}

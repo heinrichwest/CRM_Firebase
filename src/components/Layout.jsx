@@ -332,14 +332,6 @@ const Layout = () => {
                 Dashboard
               </Link>
             )}
-            {can('view_dashboard') && (
-              <Link
-                to="/financial-dashboard"
-                className={isActive('/financial-dashboard') ? 'active' : ''}
-              >
-                Financials
-              </Link>
-            )}
             {can('view_clients') && (
               <Link 
                 to="/clients" 

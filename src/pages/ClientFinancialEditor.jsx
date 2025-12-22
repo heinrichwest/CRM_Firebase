@@ -214,8 +214,9 @@ const ClientFinancialEditor = () => {
       }
 
       // Load uploaded financial data
-      const uploadedData = await getFinancialData(tenantId, fySettingsData.currentFinancialYear)
-      setFinancialData(uploadedData)
+      // Note: This component uses clientFinancials, not uploaded financialData
+      // const uploadedData = await getFinancialData(tenantId, fySettingsData.currentFinancialYear)
+      // setFinancialData(uploadedData)
 
     } catch (err) {
       console.error('Error loading data:', err)
