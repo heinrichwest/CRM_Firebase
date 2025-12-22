@@ -1163,14 +1163,12 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {!isManager && (
-              <div className="financial-section">
-                <div className="financial-section-header-with-value">
-                  <span className="financial-section-header-text">Budget</span>
-                  <span className="financial-value">{formatCurrency(financialData.budget)}</span>
-                </div>
+            <div className="financial-section">
+              <div className="financial-section-header-with-value">
+                <span className="financial-section-header-text">Budget</span>
+                <span className="financial-value">{formatCurrency(financialData.budget)}</span>
               </div>
-            )}
+            </div>
           </div>
         </div>
 
@@ -1203,14 +1201,12 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {!isManager && (
-              <div className="financial-section">
-                <div className="financial-section-header-with-value">
-                  <span className="financial-section-header-text">YTD Budget</span>
-                  <span className="financial-value">{formatCurrency(ytdFinancialData.budget)}</span>
-                </div>
+            <div className="financial-section">
+              <div className="financial-section-header-with-value">
+                <span className="financial-section-header-text">YTD Budget</span>
+                <span className="financial-value">{formatCurrency(ytdFinancialData.budget)}</span>
               </div>
-            )}
+            </div>
           </div>
         </div>
 
