@@ -1,10 +1,7 @@
 import { useState, useEffect } from 'react'
-import { getMessages, createMessage } from '../services/firestoreService'
+import { getMessages, createMessage, markMessageAsRead } from '../services/firestoreService'
 import { getUsersByTenant } from '../services/userService'
 import { useTenant } from '../context/TenantContext'
-import { getAuth } from 'firebase/auth'
-import { db } from '../config/firebase'
-import { doc, updateDoc, serverTimestamp } from 'firebase/firestore'
 import './Messages.css'
 
 const Messages = () => {
@@ -18,8 +15,7 @@ const Messages = () => {
   const [selectedMessage, setSelectedMessage] = useState(null)
   const [showReplyForm, setShowReplyForm] = useState(false)
   const [replyText, setReplyText] = useState('')
-  const auth = getAuth()
-  const { getTenantId, isSystemAdmin } = useTenant()
+  const { getTenantId, isSystemAdmin, currentUser } = useTenant()
   const tenantId = getTenantId()
 
   const [newMessage, setNewMessage] = useState({
@@ -50,7 +46,7 @@ const Messages = () => {
 
   const loadMessages = async () => {
     try {
-      const currentUserEmail = auth.currentUser?.email
+      const currentUserEmail = currentUser?.email
       const messagesData = await getMessages()
 
       // Filter messages based on tab
@@ -92,13 +88,12 @@ const Messages = () => {
       return
     }
     try {
-      const currentUser = auth.currentUser
       const messageData = {
         ...newMessage,
         from: currentUser?.email || 'Unknown',
         fromName: currentUser?.displayName || currentUser?.email || 'Unknown',
         status: 'unread',
-        createdAt: new Date()
+        createdAt: new Date().toISOString()
       }
 
       await createMessage(messageData)
@@ -132,10 +127,7 @@ const Messages = () => {
     // Mark as read if it's in inbox and unread
     if (activeTab === 'inbox' && message.status === 'unread') {
       try {
-        await updateDoc(doc(db, 'messages', message.id), {
-          status: 'read',
-          readAt: serverTimestamp()
-        })
+        await markMessageAsRead(message.id)
         // Update local state
         setMessages(prev =>
           prev.map(m => m.id === message.id ? { ...m, status: 'read' } : m)
@@ -150,7 +142,6 @@ const Messages = () => {
     if (!replyText.trim() || !selectedMessage) return
 
     try {
-      const currentUser = auth.currentUser
       const replyData = {
         subject: `Re: ${selectedMessage.subject}`,
         recipients: [selectedMessage.from],
@@ -159,7 +150,7 @@ const Messages = () => {
         fromName: currentUser?.displayName || currentUser?.email || 'Unknown',
         status: 'unread',
         inReplyTo: selectedMessage.id,
-        createdAt: new Date()
+        createdAt: new Date().toISOString()
       }
 
       await createMessage(replyData)

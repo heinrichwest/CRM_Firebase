@@ -5,17 +5,9 @@
  * for the sales team structure.
  */
 
-import { db } from '../config/firebase'
-import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  query,
-  where,
-  writeBatch,
-  serverTimestamp
-} from 'firebase/firestore'
+import { apiClient } from '../api/config/apiClient'
+import { USER_ENDPOINTS, buildUrl } from '../api/config/endpoints'
+import { unwrapResponse } from '../api/adapters/responseAdapter'
 import {
   getUserData,
   getUsersByTenant,
@@ -334,7 +326,6 @@ export const canManageUser = async (userId, targetUserId) => {
 export const recalculateTeamLeadOf = async (tenantId) => {
   try {
     const users = await getUsersByTenant(tenantId)
-    const batch = writeBatch(db)
     let updateCount = 0
 
     // Build manager -> team mapping from managerId references
@@ -348,30 +339,32 @@ export const recalculateTeamLeadOf = async (tenantId) => {
       }
     }
 
-    // Update each manager's teamLeadOf array
+    // Update each manager's teamLeadOf array via API
     for (const [managerId, teamIds] of managerTeams) {
-      const managerRef = doc(db, 'users', managerId)
-      batch.update(managerRef, {
-        teamLeadOf: teamIds,
-        updatedAt: serverTimestamp()
-      })
-      updateCount++
+      try {
+        await apiClient.put(USER_ENDPOINTS.UPDATE(managerId), {
+          teamLeadOf: teamIds,
+          updatedAt: new Date().toISOString()
+        })
+        updateCount++
+      } catch (error) {
+        console.error(`Error updating manager ${managerId}:`, error)
+      }
     }
 
     // Clear teamLeadOf for users who are no longer managers
     for (const user of users) {
       if (!managerTeams.has(user.id) && user.teamLeadOf?.length > 0) {
-        const userRef = doc(db, 'users', user.id)
-        batch.update(userRef, {
-          teamLeadOf: [],
-          updatedAt: serverTimestamp()
-        })
-        updateCount++
+        try {
+          await apiClient.put(USER_ENDPOINTS.UPDATE(user.id), {
+            teamLeadOf: [],
+            updatedAt: new Date().toISOString()
+          })
+          updateCount++
+        } catch (error) {
+          console.error(`Error clearing teamLeadOf for ${user.id}:`, error)
+        }
       }
-    }
-
-    if (updateCount > 0) {
-      await batch.commit()
     }
 
     return {

@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getAuth } from 'firebase/auth'
 import { createClient, addClientActivity, getUsers } from '../services/firestoreService'
 import { getSetas } from '../services/setaService'
 import { getJobTitles } from '../services/jobTitlesService'
@@ -9,8 +8,7 @@ import './NewClient.css'
 
 const NewClient = () => {
   const navigate = useNavigate()
-  const auth = getAuth()
-  const { getTenantId } = useTenant()
+  const { getTenantId, currentUser } = useTenant()
   const [saving, setSaving] = useState(false)
   const [users, setUsers] = useState([])
   const [setas, setSetas] = useState([])
@@ -59,10 +57,10 @@ const NewClient = () => {
 
   useEffect(() => {
     // Set default account owner to current user
-    if (auth.currentUser) {
+    if (currentUser) {
       setFormData(prev => ({
         ...prev,
-        assignedSalesPerson: auth.currentUser.uid
+        assignedSalesPerson: currentUser.uid
       }))
     }
 
@@ -167,8 +165,8 @@ const NewClient = () => {
       await addClientActivity(clientId, {
         type: 'client_created',
         description: `Client "${formData.name || formData.legalName}" was created`,
-        userId: auth.currentUser?.uid || 'system',
-        userName: auth.currentUser?.displayName || auth.currentUser?.email || 'System'
+        userId: currentUser?.uid || 'system',
+        userName: currentUser?.displayName || currentUser?.email || 'System'
       })
       
       navigate(`/clients/${clientId}`)

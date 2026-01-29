@@ -1,9 +1,5 @@
-import { useState, useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
-import { getAuth, onAuthStateChanged } from 'firebase/auth'
-import { app } from './config/firebase'
-import { createOrUpdateUser } from './services/userService'
-import { TenantProvider } from './context/TenantContext'
+import { TenantProvider, useTenant } from './context/TenantContext'
 import Dashboard from './pages/Dashboard'
 import EditFinancial from './pages/EditFinancial'
 import Clients from './pages/Clients'
@@ -34,40 +30,22 @@ import FinancialDashboard from './pages/FinancialDashboard'
 import TenantFixAdmin from './pages/TenantFixAdmin'
 import SetaManagement from './pages/SetaManagement'
 import JobTitlesManagement from './pages/JobTitlesManagement'
+import ApiDebug from './pages/ApiDebug'
 import Login from './pages/Login'
 import Layout from './components/Layout'
 import './App.css'
 
-function App() {
-  const [user, setUser] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const auth = getAuth(app)
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      if (currentUser) {
-        // Create or update user document in Firestore
-        try {
-          await createOrUpdateUser(currentUser)
-        } catch (error) {
-          console.error('Failed to create/update user document:', error)
-          // Continue even if Firestore update fails
-        }
-      }
-      setUser(currentUser)
-      setLoading(false)
-    })
-
-    return () => unsubscribe()
-  }, [auth])
+// Inner component that uses TenantContext
+function AppRoutes() {
+  const { currentUser, loading } = useTenant()
 
   if (loading) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        height: '100vh' 
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '100vh'
       }}>
         <div>Loading...</div>
       </div>
@@ -75,11 +53,10 @@ function App() {
   }
 
   return (
-    <TenantProvider>
-      <Router future={{ v7_relativeSplatPath: true }}>
-        <Routes>
-          <Route path="/login" element={!user ? <Login /> : <Navigate to="/dashboard" />} />
-          <Route path="/" element={user ? <Layout /> : <Navigate to="/login" />}>
+    <Router future={{ v7_relativeSplatPath: true }}>
+      <Routes>
+        <Route path="/login" element={!currentUser ? <Login /> : <Navigate to="/dashboard" />} />
+        <Route path="/" element={currentUser ? <Layout /> : <Navigate to="/login" />}>
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="dashboard/edit-financial" element={<EditFinancial />} />
@@ -112,9 +89,18 @@ function App() {
             <Route path="accountant-upload" element={<AccountantUpload />} />
             <Route path="financial-dashboard" element={<FinancialDashboard />} />
             <Route path="tenant-fix" element={<TenantFixAdmin />} />
+            <Route path="api-debug" element={<ApiDebug />} />
           </Route>
         </Routes>
       </Router>
+  )
+}
+
+// Main App component - wraps with TenantProvider
+function App() {
+  return (
+    <TenantProvider>
+      <AppRoutes />
     </TenantProvider>
   )
 }

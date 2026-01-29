@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo } from 'react'
-import { getAuth } from 'firebase/auth'
 import { useTenant } from '../context/TenantContext'
 import {
   getClients,
@@ -115,8 +114,7 @@ const Ys = (income, costs) => {
 // ============================================================================
 
 const ClientFinancialEditor = () => {
-  const auth = getAuth()
-  const { getTenantId, userData } = useTenant()
+  const { getTenantId, userData, currentUser } = useTenant()
   const tenantId = getTenantId()
 
   // Core state
@@ -379,7 +377,6 @@ const ClientFinancialEditor = () => {
     const rowsToSave = detailRows.filter(row => (row.productLine || '').trim() !== '')
 
     try {
-      const currentUser = auth.currentUser
       const userId = currentUser?.uid || 'system'
 
       // Save each product line row

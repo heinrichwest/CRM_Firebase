@@ -2,17 +2,13 @@ import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import {
   getClient,
-  getQuotes,
-  getInvoices,
   getClientActivities,
   getClientInteractions,
+  createInteraction,
   getFollowUpTasks,
   getClientFinancialsByYear,
-  getFeedback,
-  getContracts,
   getDeals,
   calculateFinancialYearMonths,
-  createFeedback,
   saveClientFinancial,
   updateClientPipelineStatus,
   updateClientFollowUp,
@@ -29,8 +25,6 @@ import {
   getFinancialDataByClient,
   calculateFinancialYear
 } from '../services/financialUploadService'
-import { Timestamp } from 'firebase/firestore'
-import { auth } from '../config/firebase'
 import { useTenant } from '../context/TenantContext'
 import { getJobTitles } from '../services/jobTitlesService'
 import InteractionCapture from '../components/InteractionCapture'
@@ -39,20 +33,14 @@ import './ClientDetail.css'
 const ClientDetail = () => {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { userRole, getTenantId } = useTenant()
+  const { userRole, getTenantId, currentUser } = useTenant()
   const tenantId = getTenantId()
   const [loading, setLoading] = useState(true)
   const [client, setClient] = useState(null)
-  const [quotes, setQuotes] = useState([])
-  const [allQuotes, setAllQuotes] = useState([])
-  const [invoices, setInvoices] = useState([])
-  const [allInvoices, setAllInvoices] = useState([])
   const [interactions, setInteractions] = useState([])
   const [followUpTasks, setFollowUpTasks] = useState([])
   const [financials, setFinancials] = useState([])
-  const [feedback, setFeedback] = useState([])
-  const [contracts, setContracts] = useState([])
-  const [deals, setDeals] = useState([])
+    const [deals, setDeals] = useState([])
   const [lmsData, setLmsData] = useState(null)
   const [users, setUsers] = useState([])
   const [fyInfo, setFyInfo] = useState(null)
@@ -130,9 +118,7 @@ const ClientDetail = () => {
     { value: 'email', label: 'Send Email' },
     { value: 'meeting', label: 'Schedule Meeting' },
     { value: 'proposal', label: 'Send Proposal' },
-    { value: 'quote', label: 'Follow Up on Quote' },
     { value: 'demo', label: 'Schedule Demo' },
-    { value: 'contract', label: 'Contract Discussion' },
     { value: 'other', label: 'Other' }
   ]
 
@@ -202,13 +188,9 @@ const ClientDetail = () => {
       }
 
       const [
-        quotesData,
-        invoicesData,
         interactionsData,
         tasksData,
         financialsData,
-        feedbackData,
-        contractsData,
         dealsData,
         usersData,
         pipelineStatusesData,
@@ -217,13 +199,9 @@ const ClientDetail = () => {
         legalDocTypesData,
         jobTitlesData
       ] = await Promise.all([
-        loadWithFallback(() => getQuotes(id)),
-        loadWithFallback(() => getInvoices(id)),
         loadWithFallback(() => getClientInteractions(id)),
         loadWithFallback(() => getFollowUpTasks({ clientId: id })),
         loadWithFallback(() => fyData ? getClientFinancialsByYear(fyData.currentFinancialYear, { clientId: id }) : Promise.resolve([])),
-        loadWithFallback(() => getFeedback(id)),
-        loadWithFallback(() => getContracts(id)),
         loadWithFallback(() => getDeals(null, { clientId: id })),
         loadWithFallback(() => getUsers()),
         loadWithFallback(() => getPipelineStatuses()),
@@ -233,15 +211,9 @@ const ClientDetail = () => {
         loadWithFallback(() => getJobTitles())
       ])
 
-      setAllQuotes(quotesData)
-      setQuotes(quotesData.slice(0, 5))
-      setAllInvoices(invoicesData)
-      setInvoices(invoicesData.slice(0, 5))
       setInteractions(interactionsData)
       setFollowUpTasks(tasksData)
       setFinancials(financialsData)
-      setFeedback(feedbackData)
-      setContracts(contractsData)
       setDeals(dealsData)
       setUsers(usersData)
       // Set pipeline stages from database with "Not in Pipeline" as first option
@@ -358,9 +330,9 @@ const ClientDetail = () => {
   const handleSaveLastContact = async () => {
     setSavingLastContact(true)
     try {
-      const lastContactTimestamp = lastContactDate ? Timestamp.fromDate(new Date(lastContactDate)) : null
-      await updateClient(id, { lastContact: lastContactTimestamp })
-      setClient(prev => ({ ...prev, lastContact: lastContactTimestamp }))
+      const lastContactIso = lastContactDate ? new Date(lastContactDate).toISOString() : null
+      await updateClient(id, { lastContact: lastContactIso })
+      setClient(prev => ({ ...prev, lastContact: lastContactIso }))
       setEditingLastContact(false)
     } catch (error) {
       console.error('Error updating last contact:', error)
@@ -534,14 +506,11 @@ const ClientDetail = () => {
 
     setSubmittingComment(true)
     try {
-      await createFeedback({
-        clientId: id,
-        clientName: client?.name || 'Unknown',
-        type: 'comment',
-        content: newComment,
-        date: new Date(),
-        userName: 'Current User', // In production, get from auth context
-        userId: 'currentUserId'
+      await createInteraction(id, {
+        type: 'note',
+        subject: 'Comment',
+        notes: newComment,
+        date: new Date()
       })
       setNewComment('')
       loadClientData()
@@ -607,18 +576,18 @@ const ClientDetail = () => {
     setSavingFollowUp(true)
     try {
       const followUpDate = new Date(`${followUpForm.date}T09:00:00`)
-      const followUpTimestamp = Timestamp.fromDate(followUpDate)
+      const followUpIso = followUpDate.toISOString()
 
       await updateClientFollowUp(id, {
-        date: followUpTimestamp,
+        date: followUpIso,
         reason: followUpForm.reason,
         type: followUpForm.type
-      }, auth.currentUser?.uid)
+      }, currentUser?.uid)
 
       // Update local state
       setClient(prev => ({
         ...prev,
-        nextFollowUpDate: followUpTimestamp,
+        nextFollowUpDate: followUpIso,
         nextFollowUpReason: followUpForm.reason,
         nextFollowUpType: followUpForm.type
       }))
@@ -928,19 +897,6 @@ const ClientDetail = () => {
     )
   }
 
-  // Calculate financial metrics
-  const totalInvoiced = allInvoices.reduce((sum, inv) => sum + (inv.amount || 0), 0)
-  const paidInvoices = allInvoices.filter(inv => inv.status === 'Paid')
-  const totalPaid = paidInvoices.reduce((sum, inv) => sum + (inv.amount || 0), 0)
-  const outstandingInvoices = allInvoices.filter(inv => inv.status !== 'Paid' && inv.status !== 'Cancelled')
-  const totalOutstanding = outstandingInvoices.reduce((sum, inv) => sum + (inv.amount || 0), 0)
-  const overdueInvoices = outstandingInvoices.filter(inv => {
-    if (!inv.dueDate) return false
-    const dueDate = inv.dueDate.toDate ? inv.dueDate.toDate() : new Date(inv.dueDate)
-    return dueDate < new Date()
-  })
-  const totalOverdue = overdueInvoices.reduce((sum, inv) => sum + (inv.amount || 0), 0)
-
   // Use same calculation logic as Dashboard
   const ytdMonths = fyInfo?.ytdMonths || []
   const remainingMonthsData = fyInfo?.remainingMonths || []
@@ -1097,9 +1053,6 @@ const ClientDetail = () => {
     const dueDate = t.dueDate.toDate ? t.dueDate.toDate() : new Date(t.dueDate)
     return dueDate < new Date()
   })
-
-  // Pending quotes
-  const pendingQuotes = allQuotes.filter(q => q.status === 'Sent' || q.status === 'Pending')
 
   return (
     <div className="client-detail">
@@ -1262,7 +1215,7 @@ const ClientDetail = () => {
           className={activeTab === 'comments' ? 'active' : ''}
           onClick={() => setActiveTab('comments')}
         >
-          Comments ({feedback.length})
+          Comments ({interactions.filter(i => i.type === 'note').length})
         </button>
         {userRole?.id !== 'salesperson' && (
           <button
@@ -1581,24 +1534,6 @@ const ClientDetail = () => {
             <div className="info-card alerts-card">
               <h3>Outstanding Items</h3>
               <div className="alerts-list">
-                {totalOverdue > 0 && (
-                  <div className="alert-item alert-danger">
-                    <span className="alert-icon">🔴</span>
-                    <div className="alert-content">
-                      <strong>{overdueInvoices.length} Overdue Invoice{overdueInvoices.length !== 1 ? 's' : ''}</strong>
-                      <span>Total: {formatCurrency(totalOverdue)}</span>
-                    </div>
-                  </div>
-                )}
-                {outstandingInvoices.length > 0 && (
-                  <div className="alert-item alert-warning">
-                    <span className="alert-icon">🟡</span>
-                    <div className="alert-content">
-                      <strong>{outstandingInvoices.length} Outstanding Invoice{outstandingInvoices.length !== 1 ? 's' : ''}</strong>
-                      <span>Total: {formatCurrency(totalOutstanding)}</span>
-                    </div>
-                  </div>
-                )}
                 {overdueTasks.length > 0 && userRole?.id !== 'salesperson' && (
                   <div className="alert-item alert-danger">
                     <span className="alert-icon">⏰</span>
@@ -1608,16 +1543,16 @@ const ClientDetail = () => {
                     </div>
                   </div>
                 )}
-                {pendingQuotes.length > 0 && (
-                  <div className="alert-item alert-info">
+                {pendingTasks.length > 0 && (
+                  <div className="alert-item alert-warning">
                     <span className="alert-icon">📋</span>
                     <div className="alert-content">
-                      <strong>{pendingQuotes.length} Pending Quote{pendingQuotes.length !== 1 ? 's' : ''}</strong>
-                      <span>Awaiting client response</span>
+                      <strong>{pendingTasks.length} Pending Task{pendingTasks.length !== 1 ? 's' : ''}</strong>
+                      <span>Awaiting completion</span>
                     </div>
                   </div>
                 )}
-                {totalOverdue === 0 && outstandingInvoices.length === 0 && (userRole?.id === 'salesperson' || overdueTasks.length === 0) && pendingQuotes.length === 0 && (
+                {(userRole?.id === 'salesperson' || overdueTasks.length === 0) && pendingTasks.length === 0 && (
                   <div className="alert-item alert-success">
                     <span className="alert-icon">✅</span>
                     <div className="alert-content">
@@ -1779,26 +1714,23 @@ const ClientDetail = () => {
             </button>
           </div>
 
-          {/* Comments / Feedback History */}
+          {/* Comments / Notes History */}
           <div className="comments-list">
-            <h3>Comments &amp; Feedback History</h3>
-            {feedback.length > 0 ? (
-              feedback.map((item) => (
-                <div key={item.id} className={`comment-item type-${item.type || 'comment'}`}>
+            <h3>Comments &amp; Notes History</h3>
+            {interactions.filter(i => i.type === 'note').length > 0 ? (
+              interactions.filter(i => i.type === 'note').map((item) => (
+                <div key={item.id} className="comment-item type-note">
                   <div className="comment-header">
                     <span className="comment-user">{item.userName || 'Unknown User'}</span>
                     <span className="comment-date">{formatDateTime(item.date || item.createdAt)}</span>
                   </div>
                   <div className="comment-content">
-                    {item.content || item.message || item.notes}
+                    {item.notes || item.content || item.message}
                   </div>
-                  {item.type && item.type !== 'comment' && (
-                    <span className={`comment-type-badge type-${item.type}`}>{item.type}</span>
-                  )}
                 </div>
               ))
             ) : (
-              <p className="no-data">No comments or feedback recorded yet.</p>
+              <p className="no-data">No comments or notes recorded yet.</p>
             )}
           </div>
         </div>
@@ -1970,50 +1902,7 @@ const ClientDetail = () => {
       {activeTab === 'legal' && (
         <div className="tab-content">
           <div className="legal-section">
-            <h2>Legal Documents &amp; Contracts</h2>
-
-            {/* Contracts */}
-            <div className="contracts-section">
-              <h3>Contracts</h3>
-              {contracts.length > 0 ? (
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>Contract Name</th>
-                      <th>Type</th>
-                      <th>Start Date</th>
-                      <th>End Date</th>
-                      <th>Value</th>
-                      <th>Status</th>
-                      <th>Document</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {contracts.map((contract) => (
-                      <tr key={contract.id}>
-                        <td>{contract.name || 'Unnamed Contract'}</td>
-                        <td>{contract.type || 'N/A'}</td>
-                        <td>{formatDate(contract.startDate)}</td>
-                        <td>{formatDate(contract.endDate)}</td>
-                        <td>{formatCurrency(contract.value)}</td>
-                        <td>
-                          <span className={`status-badge status-${contract.status?.toLowerCase()}`}>
-                            {contract.status || 'N/A'}
-                          </span>
-                        </td>
-                        <td>
-                          {contract.documentUrl ? (
-                            <a href={contract.documentUrl} target="_blank" rel="noopener noreferrer">View</a>
-                          ) : 'N/A'}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              ) : (
-                <p className="no-data">No contracts on file</p>
-              )}
-            </div>
+            <h2>Legal Documents</h2>
 
             {/* SharePoint/Google Drive Folder Link */}
             <div className="sharepoint-section">

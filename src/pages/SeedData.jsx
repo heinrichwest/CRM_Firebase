@@ -5,12 +5,12 @@ import {
   migrateAllProducts,
   verifyMigration
 } from '../services/productMigrationService'
-import { getDocs, collection } from 'firebase/firestore'
-import { auth } from '../config/firebase'
-import { db } from '../config/firebase'
+import { getUsers } from '../services/userService'
+import { useTenant } from '../context/TenantContext'
 import './SeedData.css'
 
 const SeedData = () => {
+  const { currentUser } = useTenant()
   const [loading, setLoading] = useState(false)
   const [loadingUsers, setLoadingUsers] = useState(true)
   const [message, setMessage] = useState('')
@@ -36,38 +36,20 @@ const SeedData = () => {
     setLoadingUsers(true)
     setError('')
     try {
-      const currentUser = auth.currentUser
-      
       console.log('=== DEBUGGING USER LOAD ===')
       console.log('Current authenticated user:', currentUser ? {
         uid: currentUser.uid,
         email: currentUser.email,
         displayName: currentUser.displayName
       } : 'NOT LOGGED IN')
-      
-      console.log('Firebase config check:', {
-        projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-        authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-        hasConfig: !!(import.meta.env.VITE_FIREBASE_PROJECT_ID)
-      })
-      
+
       if (!currentUser) {
         throw new Error('You must be logged in to load users. Please log in first.')
       }
-      
-      console.log('Attempting to query Firestore users collection...')
-      const usersSnapshot = await getDocs(collection(db, 'users'))
-      console.log('Users query result:', {
-        size: usersSnapshot.size,
-        empty: usersSnapshot.empty,
-        docs: usersSnapshot.docs.map(d => ({ 
-          id: d.id, 
-          email: d.data().email,
-          displayName: d.data().displayName 
-        }))
-      })
-      
-      const usersList = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+
+      console.log('Attempting to load users via API...')
+      const usersList = await getUsers()
+      console.log('Users loaded:', usersList?.length || 0)
       console.log('Processed users list:', usersList)
       
       setUsers(usersList)
@@ -97,13 +79,13 @@ const SeedData = () => {
       console.error('=== END ERROR ===')
       
       let errorMessage = `Failed to load users: ${error.message || 'Unknown error'}. `
-      
-      if (error.code === 'permission-denied') {
-        errorMessage += 'Permission denied. Check Firestore security rules allow reading users collection.'
-      } else if (error.code === 'unavailable') {
-        errorMessage += 'Firestore is unavailable. Check your internet connection and Firebase configuration.'
+
+      if (error.response?.status === 403) {
+        errorMessage += 'Permission denied. You may not have access to view all users.'
+      } else if (error.response?.status === 401) {
+        errorMessage += 'Authentication failed. Please log in again.'
       }
-      
+
       errorMessage += ' Check browser console (F12) for detailed error information.'
       
       setError(errorMessage)
@@ -249,7 +231,7 @@ const SeedData = () => {
       <div className="seed-data-content">
         <div className="warning-box">
           <h3>⚠️ Warning</h3>
-          <p>These operations will modify your Firestore database. Use with caution in production environments.</p>
+          <p>These operations will modify your database. Use with caution in production environments.</p>
         </div>
 
         <div className="seed-info">
@@ -318,25 +300,24 @@ const SeedData = () => {
           </div>
 
           {loadingUsers ? (
-            <div className="loading-users">Loading users from Firestore...</div>
+            <div className="loading-users">Loading users...</div>
           ) : users.length === 0 ? (
             <div className="no-users-warning">
               <p>⚠️ No users found in the database.</p>
               <p><strong>Possible issues:</strong></p>
               <ul style={{ marginLeft: '20px', marginTop: '10px' }}>
-                <li>Firebase connection may not be configured correctly</li>
-                <li>Users may not exist in the Firestore 'users' collection</li>
-                <li>Firestore security rules may be blocking access</li>
+                <li>API connection may not be configured correctly</li>
+                <li>Users may not exist in the database</li>
+                <li>You may not have permission to view users</li>
                 <li>You may not be logged in</li>
               </ul>
               <p style={{ marginTop: '15px' }}>
-                <strong>To fix:</strong> Check your browser console (F12) for error messages. 
+                <strong>To fix:</strong> Check your browser console (F12) for error messages.
                 Users are automatically created when you log in. Make sure you have logged in at least once.
               </p>
               <div style={{ marginTop: '15px', padding: '10px', background: '#f0f0f0', borderRadius: '5px' }}>
-                <p style={{ margin: '5px 0' }}><strong>Firebase Project:</strong> {import.meta.env.VITE_FIREBASE_PROJECT_ID || 'Not configured'}</p>
-                <p style={{ margin: '5px 0' }}><strong>Auth Domain:</strong> {import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'Not configured'}</p>
-                <p style={{ margin: '5px 0' }}><strong>Logged in as:</strong> {auth.currentUser?.email || 'Not logged in'}</p>
+                <p style={{ margin: '5px 0' }}><strong>API URL:</strong> {import.meta.env.VITE_API_BASE_URL || 'Not configured'}</p>
+                <p style={{ margin: '5px 0' }}><strong>Logged in as:</strong> {currentUser?.email || 'Not logged in'}</p>
               </div>
             </div>
           ) : (

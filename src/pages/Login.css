@@ -239,3 +239,28 @@
 .password-change-modal .error-message {
   margin-bottom: 15px;
 }
+
+/* Remember Me Checkbox */
+.form-group.remember-me {
+  margin-bottom: 20px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-weight: 400;
+  color: #12265E;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #12265E;
+}
+
+.checkbox-label span {
+  font-size: 0.95rem;
+}

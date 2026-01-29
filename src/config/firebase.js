@@ -1,3 +1,13 @@
+/**
+ * Firebase Configuration
+ *
+ * This module is only loaded when VITE_USE_FIREBASE=true via dynamic import
+ * in firestoreService.js. When using REST API mode, this file is never loaded.
+ *
+ * WARNING: This file should NOT be imported directly by components or services.
+ * Use the firestoreService.js facade instead.
+ */
+
 import { initializeApp } from 'firebase/app'
 import { getFirestore } from 'firebase/firestore'
 import { getAuth } from 'firebase/auth'
@@ -16,7 +26,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig)
 
 // Initialize a secondary app for creating users without affecting current session
-// This allows admins to create users without being logged out
 const secondaryApp = initializeApp(firebaseConfig, 'Secondary')
 
 // Initialize Firestore
@@ -29,9 +38,3 @@ export const auth = getAuth(app)
 export const secondaryAuth = getAuth(secondaryApp)
 
 export { app, secondaryApp }
-
-
-
-
-
-

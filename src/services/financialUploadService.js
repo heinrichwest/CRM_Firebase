@@ -17,19 +17,10 @@
  *   Legacy formats (Jan, Feb, March, etc.) are also supported for backwards compatibility
  */
 
-import {
-  collection,
-  doc,
-  setDoc,
-  getDoc,
-  getDocs,
-  query,
-  where,
-  writeBatch,
-  serverTimestamp,
-  deleteDoc
-} from 'firebase/firestore'
-import { db } from '../config/firebase'
+import { apiClient } from '../api/config/apiClient'
+import { FINANCIAL_ENDPOINTS, buildUrl } from '../api/config/endpoints'
+import { unwrapResponse } from '../api/adapters/responseAdapter'
+import { normalizeEntity, normalizeEntities, normalizeDates } from '../api/adapters/idAdapter'
 
 // Upload types
 export const UPLOAD_TYPES = {
@@ -54,6 +45,8 @@ const MONTHS = [
 
 // Short month names for CSV headers (legacy)
 const SHORT_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+const DATE_FIELDS = ['uploadedAt', 'updatedAt', 'completedAt']
 
 /**
  * Parse CSV file content into structured data
@@ -324,7 +317,7 @@ const normalizeString = (str) => {
 }
 
 /**
- * Save validated financial data to Firestore
+ * Save validated financial data via REST API
  * @param {Array} matchedRows - Validated rows with client/product IDs
  * @param {string} uploadType - Type of upload (ytd-3, ytd-2, ytd-1, budget)
  * @param {string} financialYear - Financial year string (e.g., "2024/2025")
@@ -333,72 +326,35 @@ const normalizeString = (str) => {
  * @returns {Object} Result with success/error counts
  */
 export const saveFinancialUpload = async (matchedRows, uploadType, financialYear, userId, tenantId) => {
-  const batch = writeBatch(db)
-  const errors = []
-  let successCount = 0
-
-  // Create upload record for tracking
-  const uploadId = `${tenantId}_${uploadType}_${financialYear.replace('/', '-')}_${Date.now()}`
-  const uploadRef = doc(db, 'financialUploads', uploadId)
-
-  batch.set(uploadRef, {
-    tenantId,
-    uploadType,
-    financialYear,
-    uploadedBy: userId,
-    uploadedAt: serverTimestamp(),
-    rowCount: matchedRows.length,
-    totalAmount: matchedRows.reduce((sum, row) => sum + row.total, 0),
-    status: 'processing'
-  })
-
-  // Save each row as a financial data record
-  for (const row of matchedRows) {
-    try {
-      // Create document ID: tenantId_uploadType_financialYear_clientId_productId
-      const docId = `${tenantId}_${uploadType}_${financialYear.replace('/', '-')}_${row.clientId}_${row.productId}`
-      const dataRef = doc(db, 'financialData', docId)
-
-      batch.set(dataRef, {
-        tenantId,
-        uploadType,
-        financialYear,
+  try {
+    const payload = {
+      tenantId,
+      uploadType,
+      financialYear,
+      uploadedBy: userId,
+      rows: matchedRows.map(row => ({
         clientId: row.clientId,
         clientName: row.clientName,
         productId: row.productId,
         productLine: row.productLine,
         monthlyData: row.monthlyData,
-        total: row.total,
-        uploadId,
-        uploadedBy: userId,
-        updatedAt: serverTimestamp()
-      })
-
-      successCount++
-    } catch (error) {
-      errors.push({
-        row,
-        error: error.message
-      })
+        total: row.total
+      })),
+      totalAmount: matchedRows.reduce((sum, row) => sum + row.total, 0)
     }
-  }
 
-  // Commit the batch
-  await batch.commit()
+    const response = await apiClient.post(FINANCIAL_ENDPOINTS.UPLOAD_DATA, payload)
+    const result = unwrapResponse(response)
 
-  // Update upload record status
-  await setDoc(uploadRef, {
-    status: 'completed',
-    successCount,
-    errorCount: errors.length,
-    completedAt: serverTimestamp()
-  }, { merge: true })
-
-  return {
-    uploadId,
-    successCount,
-    errorCount: errors.length,
-    errors
+    return {
+      uploadId: result.uploadId || result.id,
+      successCount: result.successCount || matchedRows.length,
+      errorCount: result.errorCount || 0,
+      errors: result.errors || []
+    }
+  } catch (error) {
+    console.error('Error saving financial upload:', error)
+    throw error
   }
 }
 
@@ -411,45 +367,18 @@ export const saveFinancialUpload = async (matchedRows, uploadType, financialYear
  */
 export const getFinancialData = async (uploadType, financialYear, tenantId) => {
   try {
-    console.log('getFinancialData query:', { uploadType, financialYear, tenantId })
-
-    const dataRef = collection(db, 'financialData')
-
-    // First, try to get ALL data for tenant to debug
-    const debugQ = query(dataRef, where('tenantId', '==', tenantId))
-    const debugSnapshot = await getDocs(debugQ)
-    const allTenantData = debugSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-
-    console.log('DEBUG - All tenant financial data:', {
+    const url = buildUrl(FINANCIAL_ENDPOINTS.GET_BUDGETS, {
       tenantId,
-      totalCount: allTenantData.length,
-      uploadTypes: [...new Set(allTenantData.map(d => d.uploadType))],
-      financialYears: [...new Set(allTenantData.map(d => d.financialYear))],
-      sampleDoc: allTenantData[0]
-    })
-
-    // Now do the filtered query
-    const q = query(
-      dataRef,
-      where('tenantId', '==', tenantId),
-      where('uploadType', '==', uploadType),
-      where('financialYear', '==', financialYear)
-    )
-
-    const snapshot = await getDocs(q)
-    const results = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-
-    console.log('getFinancialData results:', {
       uploadType,
-      financialYear,
-      count: results.length,
-      firstDoc: results[0]
+      financialYear
     })
 
-    return results
+    const response = await apiClient.get(url)
+    const data = unwrapResponse(response)
+    return normalizeEntities(data).map(d => normalizeDates(d, DATE_FIELDS))
   } catch (error) {
     console.error('Error getting financial data:', error)
-    throw error
+    return []
   }
 }
 
@@ -461,18 +390,12 @@ export const getFinancialData = async (uploadType, financialYear, tenantId) => {
  */
 export const getFinancialDataByClient = async (clientId, tenantId) => {
   try {
-    const dataRef = collection(db, 'financialData')
-    const q = query(
-      dataRef,
-      where('tenantId', '==', tenantId),
-      where('clientId', '==', clientId)
-    )
-
-    const snapshot = await getDocs(q)
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+    const response = await apiClient.get(FINANCIAL_ENDPOINTS.GET_CLIENT_FINANCIALS(clientId))
+    const data = unwrapResponse(response)
+    return normalizeEntities(data).map(d => normalizeDates(d, DATE_FIELDS))
   } catch (error) {
     console.error('Error getting financial data by client:', error)
-    throw error
+    return []
   }
 }
 
@@ -488,26 +411,17 @@ export const getFinancialDataBySalesperson = async (clientIds, tenantId) => {
   }
 
   try {
-    // Firestore 'in' query supports max 30 items, so we need to batch
-    const batches = []
-    for (let i = 0; i < clientIds.length; i += 30) {
-      const batchIds = clientIds.slice(i, i + 30)
-      const dataRef = collection(db, 'financialData')
-      const q = query(
-        dataRef,
-        where('tenantId', '==', tenantId),
-        where('clientId', 'in', batchIds)
-      )
-      batches.push(getDocs(q))
-    }
+    const url = buildUrl(FINANCIAL_ENDPOINTS.GET_BUDGETS, {
+      tenantId,
+      clientIds: clientIds.join(',')
+    })
 
-    const results = await Promise.all(batches)
-    return results.flatMap(snapshot =>
-      snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-    )
+    const response = await apiClient.get(url)
+    const data = unwrapResponse(response)
+    return normalizeEntities(data).map(d => normalizeDates(d, DATE_FIELDS))
   } catch (error) {
     console.error('Error getting financial data by salesperson:', error)
-    throw error
+    return []
   }
 }
 
@@ -518,23 +432,19 @@ export const getFinancialDataBySalesperson = async (clientIds, tenantId) => {
  */
 export const getUploadHistory = async (tenantId) => {
   try {
-    const uploadsRef = collection(db, 'financialUploads')
-    const q = query(
-      uploadsRef,
-      where('tenantId', '==', tenantId)
-    )
-
-    const snapshot = await getDocs(q)
-    return snapshot.docs
-      .map(doc => ({ id: doc.id, ...doc.data() }))
+    const url = buildUrl(FINANCIAL_ENDPOINTS.GET_UPLOAD_HISTORY, { tenantId })
+    const response = await apiClient.get(url)
+    const uploads = unwrapResponse(response)
+    return normalizeEntities(uploads)
+      .map(u => normalizeDates(u, DATE_FIELDS))
       .sort((a, b) => {
-        const dateA = a.uploadedAt?.toDate?.() || new Date(0)
-        const dateB = b.uploadedAt?.toDate?.() || new Date(0)
+        const dateA = a.uploadedAt ? new Date(a.uploadedAt) : new Date(0)
+        const dateB = b.uploadedAt ? new Date(b.uploadedAt) : new Date(0)
         return dateB - dateA
       })
   } catch (error) {
     console.error('Error getting upload history:', error)
-    throw error
+    return []
   }
 }
 
@@ -545,29 +455,9 @@ export const getUploadHistory = async (tenantId) => {
  */
 export const deleteFinancialUpload = async (uploadId, tenantId) => {
   try {
-    // Get all data for this upload
-    const dataRef = collection(db, 'financialData')
-    const q = query(
-      dataRef,
-      where('uploadId', '==', uploadId),
-      where('tenantId', '==', tenantId)
-    )
-
-    const snapshot = await getDocs(q)
-
-    // Delete in batches
-    const batch = writeBatch(db)
-    snapshot.docs.forEach(doc => {
-      batch.delete(doc.ref)
-    })
-
-    // Delete the upload record
-    const uploadRef = doc(db, 'financialUploads', uploadId)
-    batch.delete(uploadRef)
-
-    await batch.commit()
-
-    return { deletedCount: snapshot.docs.length }
+    const response = await apiClient.delete(FINANCIAL_ENDPOINTS.DELETE_UPLOAD(uploadId))
+    const result = unwrapResponse(response)
+    return { deletedCount: result.deletedCount || 0 }
   } catch (error) {
     console.error('Error deleting financial upload:', error)
     throw error

@@ -1,18 +1,15 @@
-import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  addDoc,
-  updateDoc,
-  setDoc,
-  query,
-  where,
-  orderBy,
-  serverTimestamp,
-  writeBatch
-} from 'firebase/firestore'
-import { db } from '../config/firebase'
+/**
+ * Calculation Template Service
+ *
+ * Provides calculation template operations via REST API.
+ */
+
+import { apiClient } from '../api/config/apiClient'
+import { CALCULATION_TEMPLATE_ENDPOINTS, buildUrl } from '../api/config/endpoints'
+import { unwrapResponse } from '../api/adapters/responseAdapter'
+import { normalizeEntity, normalizeEntities, normalizeDates, serializeDates } from '../api/adapters/idAdapter'
+
+const DATE_FIELDS = ['createdAt', 'updatedAt']
 
 // ============================================================================
 // CALCULATION TEMPLATES
@@ -24,24 +21,19 @@ import { db } from '../config/firebase'
  */
 export const getCalculationTemplates = async () => {
   try {
-    const templatesRef = collection(db, 'calculationTemplates')
-    const q = query(templatesRef, where('status', '!=', 'deleted'), orderBy('status'), orderBy('name'))
-    const snapshot = await getDocs(q)
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+    const response = await apiClient.get(CALCULATION_TEMPLATE_ENDPOINTS.LIST)
+    const templates = unwrapResponse(response)
+    const normalized = normalizeEntities(templates).map(t => normalizeDates(t, DATE_FIELDS))
+    return normalized
+      .filter(t => t.status !== 'deleted')
+      .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
   } catch (error) {
     console.error('Error getting calculation templates:', error)
-    // If index doesn't exist yet, try without ordering
-    try {
-      const templatesRef = collection(db, 'calculationTemplates')
-      const snapshot = await getDocs(templatesRef)
-      return snapshot.docs
-        .map(doc => ({ id: doc.id, ...doc.data() }))
-        .filter(t => t.status !== 'deleted')
-        .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
-    } catch (fallbackError) {
-      console.error('Fallback query also failed:', fallbackError)
-      return []
-    }
+    // Return default templates from memory on error
+    return Object.entries(DEFAULT_CALCULATION_TEMPLATES).map(([id, data]) => ({
+      id,
+      ...data
+    }))
   }
 }
 
@@ -52,15 +44,19 @@ export const getCalculationTemplates = async () => {
  */
 export const getCalculationTemplate = async (templateId) => {
   try {
-    const templateRef = doc(db, 'calculationTemplates', templateId)
-    const templateSnap = await getDoc(templateRef)
-    if (templateSnap.exists()) {
-      return { id: templateSnap.id, ...templateSnap.data() }
+    const response = await apiClient.get(CALCULATION_TEMPLATE_ENDPOINTS.GET_BY_ID(templateId))
+    const template = unwrapResponse(response)
+    if (template) {
+      return normalizeDates(normalizeEntity(template), DATE_FIELDS)
     }
     return null
   } catch (error) {
+    // If API fails, check default templates
+    if (DEFAULT_CALCULATION_TEMPLATES[templateId]) {
+      return { id: templateId, ...DEFAULT_CALCULATION_TEMPLATES[templateId] }
+    }
     console.error('Error getting calculation template:', error)
-    throw error
+    return null
   }
 }
 
@@ -71,15 +67,17 @@ export const getCalculationTemplate = async (templateId) => {
  */
 export const createCalculationTemplate = async (templateData) => {
   try {
-    const templatesRef = collection(db, 'calculationTemplates')
-    const docRef = await addDoc(templatesRef, {
+    const payload = serializeDates({
       ...templateData,
       status: templateData.status || 'active',
       version: templateData.version || '1.0',
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    })
-    return docRef.id
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    }, DATE_FIELDS)
+
+    const response = await apiClient.post(CALCULATION_TEMPLATE_ENDPOINTS.CREATE, payload)
+    const result = unwrapResponse(response)
+    return result.key || result.id
   } catch (error) {
     console.error('Error creating calculation template:', error)
     throw error
@@ -94,14 +92,16 @@ export const createCalculationTemplate = async (templateData) => {
  */
 export const createCalculationTemplateWithId = async (templateId, templateData) => {
   try {
-    const templateRef = doc(db, 'calculationTemplates', templateId)
-    await setDoc(templateRef, {
+    const payload = serializeDates({
+      id: templateId,
       ...templateData,
       status: templateData.status || 'active',
       version: templateData.version || '1.0',
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    })
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    }, DATE_FIELDS)
+
+    await apiClient.post(CALCULATION_TEMPLATE_ENDPOINTS.CREATE, payload)
     return templateId
   } catch (error) {
     console.error('Error creating calculation template with ID:', error)
@@ -116,11 +116,12 @@ export const createCalculationTemplateWithId = async (templateId, templateData) 
  */
 export const updateCalculationTemplate = async (templateId, templateData) => {
   try {
-    const templateRef = doc(db, 'calculationTemplates', templateId)
-    await updateDoc(templateRef, {
+    const payload = serializeDates({
       ...templateData,
-      updatedAt: serverTimestamp()
-    })
+      updatedAt: new Date().toISOString()
+    }, DATE_FIELDS)
+
+    await apiClient.put(CALCULATION_TEMPLATE_ENDPOINTS.UPDATE(templateId), payload)
   } catch (error) {
     console.error('Error updating calculation template:', error)
     throw error
@@ -133,10 +134,9 @@ export const updateCalculationTemplate = async (templateId, templateData) => {
  */
 export const archiveCalculationTemplate = async (templateId) => {
   try {
-    const templateRef = doc(db, 'calculationTemplates', templateId)
-    await updateDoc(templateRef, {
+    await apiClient.put(CALCULATION_TEMPLATE_ENDPOINTS.UPDATE(templateId), {
       status: 'archived',
-      updatedAt: serverTimestamp()
+      updatedAt: new Date().toISOString()
     })
   } catch (error) {
     console.error('Error archiving calculation template:', error)
@@ -748,12 +748,11 @@ export const DEFAULT_CALCULATION_TEMPLATES = {
 }
 
 /**
- * Initialize default calculation templates in Firestore
+ * Initialize default calculation templates via API
  * Only creates templates that don't already exist
  */
 export const initializeCalculationTemplates = async () => {
   try {
-    const batch = writeBatch(db)
     const existingTemplates = await getCalculationTemplates()
     const existingIds = new Set(existingTemplates.map(t => t.id))
 
@@ -761,18 +760,12 @@ export const initializeCalculationTemplates = async () => {
 
     for (const [templateId, templateData] of Object.entries(DEFAULT_CALCULATION_TEMPLATES)) {
       if (!existingIds.has(templateId)) {
-        const templateRef = doc(db, 'calculationTemplates', templateId)
-        batch.set(templateRef, {
-          ...templateData,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp()
-        })
+        await createCalculationTemplateWithId(templateId, templateData)
         createdCount++
       }
     }
 
     if (createdCount > 0) {
-      await batch.commit()
       console.log(`Initialized ${createdCount} calculation templates`)
     }
 

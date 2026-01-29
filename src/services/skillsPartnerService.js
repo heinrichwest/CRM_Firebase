@@ -1,18 +1,15 @@
-import { db } from '../config/firebase'
-import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  query,
-  where,
-  Timestamp
-} from 'firebase/firestore'
+/**
+ * Skills Partner Service
+ *
+ * Provides API operations for skills partners.
+ */
 
-const SKILLS_PARTNERS_COLLECTION = 'skillsPartners'
+import { apiClient } from '../api/config/apiClient'
+import { SKILLS_PARTNER_ENDPOINTS, buildUrl } from '../api/config/endpoints'
+import { unwrapResponse } from '../api/adapters/responseAdapter'
+import { normalizeEntity, normalizeEntities, normalizeDates, serializeDates } from '../api/adapters/idAdapter'
+
+const DATE_FIELDS = ['createdAt', 'updatedAt']
 
 /**
  * Get all skills partners
@@ -20,23 +17,14 @@ const SKILLS_PARTNERS_COLLECTION = 'skillsPartners'
  */
 export const getSkillsPartners = async () => {
   try {
-    const partnersRef = collection(db, SKILLS_PARTNERS_COLLECTION)
-    const snapshot = await getDocs(partnersRef)
-
-    const partners = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }))
-
+    const response = await apiClient.get(SKILLS_PARTNER_ENDPOINTS.LIST)
+    const partners = unwrapResponse(response)
+    const normalized = normalizeEntities(partners).map(p => normalizeDates(p, DATE_FIELDS))
     // Sort by name alphabetically
-    return partners.sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+    return normalized.sort((a, b) => (a.name || '').localeCompare(b.name || ''))
   } catch (error) {
     console.error('Error getting skills partners:', error)
-    if (error.code === 'permission-denied' || error.message?.includes('collection')) {
-      console.log('Skills partners collection may not exist yet')
-      return []
-    }
-    throw error
+    return []
   }
 }
 
@@ -56,22 +44,16 @@ export const getActiveSkillsPartners = async () => {
 
 /**
  * Get a single skills partner by ID
- * @param {string} partnerId - The skills partner document ID
+ * @param {string} partnerId - The skills partner ID
  * @returns {Promise<Object>} Skills partner object
  */
 export const getSkillsPartner = async (partnerId) => {
   try {
-    const partnerRef = doc(db, SKILLS_PARTNERS_COLLECTION, partnerId)
-    const partnerDoc = await getDoc(partnerRef)
-
-    if (partnerDoc.exists()) {
-      return {
-        id: partnerDoc.id,
-        ...partnerDoc.data()
-      }
-    }
-    return null
+    const response = await apiClient.get(SKILLS_PARTNER_ENDPOINTS.GET_BY_KEY(partnerId))
+    const partner = unwrapResponse(response)
+    return normalizeDates(normalizeEntity(partner), DATE_FIELDS)
   } catch (error) {
+    if (error.statusCode === 404) return null
     console.error('Error getting skills partner:', error)
     throw error
   }
@@ -84,14 +66,15 @@ export const getSkillsPartner = async (partnerId) => {
  */
 export const createSkillsPartner = async (partnerData) => {
   try {
-    const newPartner = {
+    const payload = serializeDates({
       ...partnerData,
-      createdAt: Timestamp.now(),
-      updatedAt: Timestamp.now()
-    }
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    }, DATE_FIELDS)
 
-    const docRef = await addDoc(collection(db, SKILLS_PARTNERS_COLLECTION), newPartner)
-    return docRef.id
+    const response = await apiClient.post(SKILLS_PARTNER_ENDPOINTS.CREATE, payload)
+    const result = unwrapResponse(response)
+    return result.key || result.id
   } catch (error) {
     console.error('Error creating skills partner:', error)
     throw error
@@ -100,17 +83,19 @@ export const createSkillsPartner = async (partnerData) => {
 
 /**
  * Update an existing skills partner
- * @param {string} partnerId - The skills partner document ID
+ * @param {string} partnerId - The skills partner ID
  * @param {Object} partnerData - Updated skills partner data
  * @returns {Promise<void>}
  */
 export const updateSkillsPartner = async (partnerId, partnerData) => {
   try {
-    const partnerRef = doc(db, SKILLS_PARTNERS_COLLECTION, partnerId)
-    await updateDoc(partnerRef, {
+    const payload = serializeDates({
       ...partnerData,
-      updatedAt: Timestamp.now()
-    })
+      updatedAt: new Date().toISOString()
+    }, DATE_FIELDS)
+
+    const response = await apiClient.put(SKILLS_PARTNER_ENDPOINTS.UPDATE(partnerId), payload)
+    unwrapResponse(response)
   } catch (error) {
     console.error('Error updating skills partner:', error)
     throw error
@@ -119,13 +104,13 @@ export const updateSkillsPartner = async (partnerId, partnerData) => {
 
 /**
  * Delete a skills partner
- * @param {string} partnerId - The skills partner document ID
+ * @param {string} partnerId - The skills partner ID
  * @returns {Promise<void>}
  */
 export const deleteSkillsPartner = async (partnerId) => {
   try {
-    const partnerRef = doc(db, SKILLS_PARTNERS_COLLECTION, partnerId)
-    await deleteDoc(partnerRef)
+    const response = await apiClient.delete(SKILLS_PARTNER_ENDPOINTS.DELETE(partnerId))
+    unwrapResponse(response)
   } catch (error) {
     console.error('Error deleting skills partner:', error)
     throw error
@@ -167,7 +152,7 @@ export const seedSkillsPartners = async () => {
         phone: '+27 11 123 4567',
         status: 'active',
         agreementLink: 'https://drive.google.com/example1',
-        commissionRates: {}, // Will be set per product line
+        commissionRates: {},
         notes: 'Primary skills partner for corporate training'
       },
       {

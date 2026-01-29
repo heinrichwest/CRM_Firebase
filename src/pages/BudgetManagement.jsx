@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react'
-import { auth } from '../config/firebase'
 import { getUserData, getUsersByTenant } from '../services/userService'
 import { getRole } from '../services/roleService'
 import {
@@ -12,7 +11,7 @@ import { useTenant } from '../context/TenantContext'
 import './BudgetManagement.css'
 
 const BudgetManagement = () => {
-  const { getTenantId, isSystemAdmin, accessibleUserIds } = useTenant()
+  const { getTenantId, isSystemAdmin, accessibleUserIds, currentUser } = useTenant()
   const tenantId = getTenantId()
 
   const [loading, setLoading] = useState(true)
@@ -44,7 +43,6 @@ const BudgetManagement = () => {
 
   const checkUserRole = async () => {
     try {
-      const currentUser = auth.currentUser
       if (currentUser) {
         setCurrentUserId(currentUser.uid)
         const userData = await getUserData(currentUser.uid)

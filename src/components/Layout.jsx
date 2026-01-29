@@ -1,21 +1,16 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
-import { getAuth, signOut } from 'firebase/auth'
-import { auth, db } from '../config/firebase'
-import { collection, query, where, onSnapshot, limit, addDoc, serverTimestamp, or } from 'firebase/firestore'
-import { getUserData, getUsersByTenant } from '../services/userService'
-import { getRole } from '../services/roleService'
+import { getUsersByTenant as apiGetUsersByTenant } from '../api'
+import { getMessages, createMessage, markMessageAsRead } from '../api'
 import { useTenant } from '../context/TenantContext'
 import './Layout.css'
 
 const Layout = () => {
   const location = useLocation()
   const navigate = useNavigate()
-  const { isSystemAdmin, currentTenant, getTenantId, isSalesHead } = useTenant()
+  const { currentUser, userData, userRole, isSystemAdmin, currentTenant, getTenantId, isSalesHead, signOut } = useTenant()
   const tenantId = getTenantId()
   const isGroupSalesManager = isSalesHead ? isSalesHead() : false
-  const [userProfile, setUserProfile] = useState(null)
-  const [userRole, setUserRole] = useState(null)
   const [adminDropdownOpen, setAdminDropdownOpen] = useState(false)
   const [unreadMessageCount, setUnreadMessageCount] = useState(0)
   const [chatOpen, setChatOpen] = useState(false)
@@ -32,7 +27,6 @@ const Layout = () => {
   const chatEndRef = useRef(null)
 
   useEffect(() => {
-    loadUserProfile()
     // Load last seen chat time from localStorage
     const savedTime = localStorage.getItem('lastSeenChatTime')
     if (savedTime) {
@@ -40,84 +34,38 @@ const Layout = () => {
     }
   }, [])
 
-  // Subscribe to unread messages count
-  useEffect(() => {
-    const currentUser = auth.currentUser
+  // Fetch unread messages count via API (polling)
+  const fetchUnreadMessageCount = useCallback(async () => {
     if (!currentUser) return
+    try {
+      const messages = await getMessages('unread')
+      setUnreadMessageCount(messages.length)
+    } catch (error) {
+      console.error('Error fetching unread messages:', error)
+    }
+  }, [currentUser])
 
-    const messagesRef = collection(db, 'messages')
-    const q = query(
-      messagesRef,
-      where('recipients', 'array-contains', currentUser.email),
-      where('status', '==', 'unread')
-    )
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      setUnreadMessageCount(snapshot.size)
-    }, (error) => {
-      console.error('Error listening to unread messages:', error)
-    })
-
-    return () => unsubscribe()
-  }, [])
-
-  // Subscribe to unread chat messages count (general chatroom + direct messages)
   useEffect(() => {
-    const currentUser = auth.currentUser
+    if (!currentUser) return
+    fetchUnreadMessageCount()
+    // Poll every 30 seconds for new messages
+    const interval = setInterval(fetchUnreadMessageCount, 30000)
+    return () => clearInterval(interval)
+  }, [currentUser, fetchUnreadMessageCount])
+
+  // Fetch unread chat messages count via API (polling)
+  // Note: Chat functionality now uses the message system
+  useEffect(() => {
     if (!currentUser) return
 
     // Get stored last seen time
     const storedTime = localStorage.getItem('lastSeenChatTime')
     const lastSeen = storedTime ? parseInt(storedTime, 10) : 0
 
-    // Subscribe to general chatroom messages
-    const chatroomRef = collection(db, 'chatroom')
-    const chatroomQuery = query(chatroomRef, limit(100))
-
-    // Subscribe to direct messages for this user
-    const directRef = collection(db, 'directMessages')
-    const directQuery = query(
-      directRef,
-      where('receiverId', '==', currentUser.uid),
-      limit(100)
-    )
-
-    let chatroomUnread = 0
-    let directUnread = 0
-
-    const updateTotalUnread = () => {
-      setUnreadChatCount(chatroomUnread + directUnread)
-    }
-
-    const unsubChatroom = onSnapshot(chatroomQuery, (snapshot) => {
-      const msgs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-      // Count messages newer than lastSeen and not from current user
-      chatroomUnread = msgs.filter(msg => {
-        const msgTime = msg.createdAt?.toMillis?.() || msg.createdAt?.seconds * 1000 || 0
-        return msgTime > lastSeen && msg.userId !== currentUser.uid
-      }).length
-      updateTotalUnread()
-    }, (error) => {
-      console.error('Error listening to chatroom for unread count:', error)
-    })
-
-    const unsubDirect = onSnapshot(directQuery, (snapshot) => {
-      const msgs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-      // Count messages newer than lastSeen
-      directUnread = msgs.filter(msg => {
-        const msgTime = msg.createdAt?.toMillis?.() || msg.createdAt?.seconds * 1000 || 0
-        return msgTime > lastSeen
-      }).length
-      updateTotalUnread()
-    }, (error) => {
-      console.error('Error listening to direct messages for unread count:', error)
-    })
-
-    return () => {
-      unsubChatroom()
-      unsubDirect()
-    }
-  }, [lastSeenChatTime])
+    // For now, unread chat count is included in the message count
+    // This can be expanded later with a dedicated chat API endpoint
+    setUnreadChatCount(0)
+  }, [lastSeenChatTime, currentUser])
 
   // Load users for direct messaging (filtered by tenant)
   useEffect(() => {
@@ -125,9 +73,9 @@ const Layout = () => {
       try {
         // Filter users by tenant to only show users from the same tenant
         const filterTenantId = isSystemAdmin ? null : tenantId
-        const users = await getUsersByTenant(filterTenantId)
+        const users = await apiGetUsersByTenant(filterTenantId)
         // Filter out current user
-        const otherUsers = users.filter(u => u.id !== auth.currentUser?.uid)
+        const otherUsers = users.filter(u => u.id !== currentUser?.uid)
         setChatUsers(otherUsers)
       } catch (error) {
         console.error('Error loading chat users:', error)
@@ -136,49 +84,30 @@ const Layout = () => {
     if (chatOpen) {
       loadChatUsers()
     }
-  }, [chatOpen, tenantId, isSystemAdmin])
+  }, [chatOpen, tenantId, isSystemAdmin, currentUser])
 
-  // Subscribe to chat messages (general or direct)
-  useEffect(() => {
+  // Fetch chat messages via API (polling when chat is open)
+  const fetchChatMessages = useCallback(async () => {
     if (!chatOpen) return
+    if (!currentUser?.uid) return
 
-    const currentUserId = auth.currentUser?.uid
-    if (!currentUserId) return
+    try {
+      // Fetch messages - the API can be filtered by type/status
+      const messages = await getMessages()
 
-    let chatRef
-    let q
-
-    if (chatView === 'general') {
-      // General chatroom
-      chatRef = collection(db, 'chatroom')
-      q = query(chatRef, limit(100))
-    } else if (selectedChatUser) {
-      // Direct message - use a consistent chat ID based on both user IDs
-      chatRef = collection(db, 'directMessages')
-      // Query for messages between these two users
-      q = query(
-        chatRef,
-        where('participants', 'array-contains', currentUserId),
-        limit(100)
-      )
-    } else {
-      return
-    }
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      let chatData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+      let chatData = messages
 
       // For direct messages, filter to only show messages with selected user
       if (chatView !== 'general' && selectedChatUser) {
         chatData = chatData.filter(msg =>
-          msg.participants?.includes(selectedChatUser.id)
+          msg.senderId === selectedChatUser.id || msg.recipientId === selectedChatUser.id
         )
       }
 
-      // Sort client-side by createdAt
+      // Sort by createdAt
       chatData.sort((a, b) => {
-        const timeA = a.createdAt?.toMillis?.() || a.createdAt?.seconds * 1000 || 0
-        const timeB = b.createdAt?.toMillis?.() || b.createdAt?.seconds * 1000 || 0
+        const timeA = new Date(a.createdAt || a.sentAt || 0).getTime()
+        const timeB = new Date(b.createdAt || b.sentAt || 0).getTime()
         return timeA - timeB
       })
       setChatMessages(chatData)
@@ -186,12 +115,18 @@ const Layout = () => {
       setTimeout(() => {
         chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
       }, 100)
-    }, (error) => {
-      console.error('Error listening to chat messages:', error)
-    })
+    } catch (error) {
+      console.error('Error fetching chat messages:', error)
+    }
+  }, [chatOpen, chatView, selectedChatUser, currentUser])
 
-    return () => unsubscribe()
-  }, [chatOpen, chatView, selectedChatUser])
+  useEffect(() => {
+    if (!chatOpen) return
+    fetchChatMessages()
+    // Poll every 5 seconds when chat is open
+    const interval = setInterval(fetchChatMessages, 5000)
+    return () => clearInterval(interval)
+  }, [chatOpen, chatView, selectedChatUser, fetchChatMessages])
 
   useEffect(() => {
     // Close dropdowns when clicking outside
@@ -213,28 +148,9 @@ const Layout = () => {
     }
   }, [adminDropdownOpen, profileDropdownOpen])
 
-  const loadUserProfile = async () => {
-    try {
-      const currentUser = auth.currentUser
-      if (currentUser) {
-        const userData = await getUserData(currentUser.uid)
-        if (userData) {
-          setUserProfile(userData)
-          const role = await getRole(userData.role || 'salesperson')
-          if (role) {
-            setUserRole(role)
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Error loading user profile:', error)
-      // Don't block rendering if profile loading fails
-    }
-  }
-
   const handleLogout = async () => {
     try {
-      await signOut(auth)
+      await signOut()
       navigate('/login')
     } catch (error) {
       console.error('Error signing out:', error)
@@ -249,30 +165,35 @@ const Layout = () => {
     setChatInput('') // Clear input immediately for better UX
 
     try {
-      const currentUser = auth.currentUser
-
       if (chatView === 'general') {
-        // Send to general chatroom
-        await addDoc(collection(db, 'chatroom'), {
-          text: messageText,
-          userId: currentUser?.uid || 'anonymous',
-          userName: userProfile?.displayName || currentUser?.displayName || currentUser?.email || 'Anonymous',
-          userEmail: currentUser?.email || 'anonymous',
-          createdAt: serverTimestamp()
+        // Send to general chatroom - using message API
+        await createMessage({
+          subject: 'Team Chat',
+          body: messageText,
+          type: 'chat',
+          senderId: currentUser?.uid,
+          senderName: userData?.displayName || currentUser?.displayName || currentUser?.email || 'Anonymous',
+          senderEmail: currentUser?.email || 'anonymous',
+          recipients: ['all'], // General chat goes to all
+          sentAt: new Date().toISOString()
         })
       } else if (selectedChatUser) {
         // Send direct message
-        await addDoc(collection(db, 'directMessages'), {
-          text: messageText,
+        await createMessage({
+          subject: 'Direct Message',
+          body: messageText,
+          type: 'direct',
           senderId: currentUser?.uid,
-          senderName: userProfile?.displayName || currentUser?.displayName || currentUser?.email || 'Anonymous',
+          senderName: userData?.displayName || currentUser?.displayName || currentUser?.email || 'Anonymous',
           senderEmail: currentUser?.email,
-          receiverId: selectedChatUser.id,
-          receiverName: selectedChatUser.displayName || selectedChatUser.email,
-          participants: [currentUser?.uid, selectedChatUser.id],
-          createdAt: serverTimestamp()
+          recipientId: selectedChatUser.id,
+          recipientName: selectedChatUser.displayName || selectedChatUser.email,
+          recipients: [selectedChatUser.email],
+          sentAt: new Date().toISOString()
         })
       }
+      // Refresh messages after sending
+      fetchChatMessages()
     } catch (error) {
       console.error('Error sending chat message:', error)
       setChatInput(messageText) // Restore input if send failed
@@ -294,7 +215,7 @@ const Layout = () => {
 
   const formatChatTime = (timestamp) => {
     if (!timestamp) return ''
-    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp)
+    const date = new Date(timestamp)
     return date.toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' })
   }
 
@@ -537,6 +458,16 @@ const Layout = () => {
                       Calculation Templates
                     </Link>
                   )}
+                  {/* API Debug - System Admin only */}
+                  {isSystemAdmin && (
+                    <Link
+                      to="/api-debug"
+                      className={isActive('/api-debug') ? 'active' : ''}
+                      onClick={() => setAdminDropdownOpen(false)}
+                    >
+                      API Debug
+                    </Link>
+                  )}
                 </div>
               </div>
             )}
@@ -566,8 +497,8 @@ const Layout = () => {
             )}
 
             {/* User Profile Section - Clickable with Dropdown */}
-            {userProfile && (
-              <div 
+            {userData && (
+              <div
                 className="profile-dropdown"
                 ref={profileDropdownRef}
               >
@@ -576,18 +507,18 @@ const Layout = () => {
                   onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
                 >
                   <div className="user-avatar">
-                    {userProfile.photoURL ? (
-                      <img src={userProfile.photoURL} alt={userProfile.displayName || 'User'} />
+                    {userData.photoURL ? (
+                      <img src={userData.photoURL} alt={userData.displayName || 'User'} />
                     ) : (
                       <div className="avatar-placeholder">
-                        {(userProfile.displayName || userProfile.email || 'U').charAt(0).toUpperCase()}
+                        {(userData.displayName || userData.email || 'U').charAt(0).toUpperCase()}
                       </div>
                     )}
                   </div>
                   {userRole ? (
                     <div className="user-role">{userRole.name}</div>
-                  ) : userProfile?.role ? (
-                    <div className="user-role">{userProfile.role}</div>
+                  ) : userData?.role ? (
+                    <div className="user-role">{userData.role}</div>
                   ) : (
                     <div className="user-role">User</div>
                   )}
@@ -686,8 +617,8 @@ const Layout = () => {
                 {chatMessages.length > 0 ? (
                   chatMessages.map((msg) => {
                     const isOwnMessage = chatView === 'general'
-                      ? msg.userEmail === auth.currentUser?.email
-                      : msg.senderId === auth.currentUser?.uid
+                      ? msg.userEmail === currentUser?.email || msg.senderEmail === currentUser?.email
+                      : msg.senderId === currentUser?.uid
                     const senderName = chatView === 'general' ? msg.userName : msg.senderName
 
                     return (
@@ -697,9 +628,9 @@ const Layout = () => {
                       >
                         <div className="chat-popup-message-header">
                           <span className="chat-popup-user">{senderName}</span>
-                          <span className="chat-popup-time">{formatChatTime(msg.createdAt)}</span>
+                          <span className="chat-popup-time">{formatChatTime(msg.createdAt || msg.sentAt)}</span>
                         </div>
-                        <div className="chat-popup-text">{msg.text}</div>
+                        <div className="chat-popup-text">{msg.body || msg.text}</div>
                       </div>
                     )
                   })

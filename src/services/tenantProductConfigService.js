@@ -1,17 +1,48 @@
-import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  setDoc,
-  updateDoc,
-  query,
-  where,
-  serverTimestamp
-} from 'firebase/firestore'
-import { db } from '../config/firebase'
-import { getProducts, getProductLines } from './firestoreService'
+/**
+ * Tenant Product Config Service
+ *
+ * Provides tenant-specific product configuration operations via REST API.
+ */
+
+import { apiClient } from '../api/config/apiClient'
+import { TENANT_PRODUCT_CONFIG_ENDPOINTS, PRODUCT_ENDPOINTS, PRODUCT_LINE_ENDPOINTS, buildUrl } from '../api/config/endpoints'
+import { unwrapResponse } from '../api/adapters/responseAdapter'
+import { normalizeEntity, normalizeEntities, normalizeDates } from '../api/adapters/idAdapter'
 import { getCalculationTemplate } from './calculationTemplateService'
+
+const DATE_FIELDS = ['updatedAt', 'enabledAt', 'disabledAt']
+
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
+/**
+ * Get all products from API
+ */
+const getProducts = async () => {
+  try {
+    const response = await apiClient.get(PRODUCT_ENDPOINTS.LIST)
+    const products = unwrapResponse(response)
+    return normalizeEntities(products)
+  } catch (error) {
+    console.error('Error getting products:', error)
+    return []
+  }
+}
+
+/**
+ * Get all product lines from API
+ */
+const getProductLines = async () => {
+  try {
+    const response = await apiClient.get(PRODUCT_LINE_ENDPOINTS.LIST)
+    const productLines = unwrapResponse(response)
+    return normalizeEntities(productLines)
+  } catch (error) {
+    console.error('Error getting product lines:', error)
+    return []
+  }
+}
 
 // ============================================================================
 // TENANT PRODUCT CONFIGURATION
@@ -26,11 +57,11 @@ export const getTenantProductConfig = async (tenantId) => {
   if (!tenantId) return null
 
   try {
-    const configRef = doc(db, 'tenantProductConfigs', tenantId)
-    const configSnap = await getDoc(configRef)
+    const response = await apiClient.get(TENANT_PRODUCT_CONFIG_ENDPOINTS.GET_CONFIG(tenantId))
+    const config = unwrapResponse(response)
 
-    if (configSnap.exists()) {
-      return { id: configSnap.id, ...configSnap.data() }
+    if (config) {
+      return normalizeDates(normalizeEntity(config), DATE_FIELDS)
     }
 
     // Return default config if none exists
@@ -41,6 +72,15 @@ export const getTenantProductConfig = async (tenantId) => {
       defaultValueOverrides: {}
     }
   } catch (error) {
+    // If 404, return default config
+    if (error.statusCode === 404) {
+      return {
+        tenantId,
+        enabledProducts: [],
+        listOverrides: {},
+        defaultValueOverrides: {}
+      }
+    }
     console.error('Error getting tenant product config:', error)
     return null
   }
@@ -55,12 +95,13 @@ export const saveTenantProductConfig = async (tenantId, config) => {
   if (!tenantId) throw new Error('Tenant ID is required')
 
   try {
-    const configRef = doc(db, 'tenantProductConfigs', tenantId)
-    await setDoc(configRef, {
+    const payload = {
       tenantId,
       ...config,
-      updatedAt: serverTimestamp()
-    }, { merge: true })
+      updatedAt: new Date().toISOString()
+    }
+
+    await apiClient.put(TENANT_PRODUCT_CONFIG_ENDPOINTS.SAVE_CONFIG(tenantId), payload)
   } catch (error) {
     console.error('Error saving tenant product config:', error)
     throw error

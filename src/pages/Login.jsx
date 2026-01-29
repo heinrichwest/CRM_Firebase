@@ -1,16 +1,17 @@
 import { useState } from 'react'
-import { signInWithPopup, OAuthProvider, signInWithEmailAndPassword, updatePassword } from 'firebase/auth'
-import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore'
-import { auth, db } from '../config/firebase'
+import { useNavigate } from 'react-router-dom'
+import { login as apiLogin, changePassword as apiChangePassword } from '../api'
+import { getUserFriendlyError } from '../api/adapters/responseAdapter'
 import './Login.css'
 
 const Login = () => {
+  const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [microsoftLoading, setMicrosoftLoading] = useState(false)
+  const [rememberMe, setRememberMe] = useState(false)
 
   // Password change modal state
   const [showPasswordChangeModal, setShowPasswordChangeModal] = useState(false)
@@ -18,40 +19,26 @@ const Login = () => {
   const [confirmNewPassword, setConfirmNewPassword] = useState('')
   const [changingPassword, setChangingPassword] = useState(false)
 
-  const handleMicrosoftLogin = async () => {
-    setError('')
-    setMicrosoftLoading(true)
-
-    try {
-      const provider = new OAuthProvider('microsoft.com')
-      // Using tenant-specific endpoint (configured in Firebase Console)
-      // No need to set tenant parameter for single-tenant applications
-
-      await signInWithPopup(auth, provider)
-    } catch (err) {
-      setError(err.message)
-      setMicrosoftLoading(false)
-    }
-  }
-
   const handleEmailPasswordLogin = async (e) => {
     e.preventDefault()
     setError('')
     setLoading(true)
 
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password)
+      const result = await apiLogin(email, password, rememberMe)
 
-      // Check if user needs to change password
-      const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid))
-      if (userDoc.exists() && userDoc.data().requirePasswordChange) {
+      // Check if user needs to change password (from API response)
+      if (result.user?.requirePasswordChange) {
         setShowPasswordChangeModal(true)
         setLoading(false)
         return
       }
-      // If no password change required, login proceeds normally (auth state listener handles redirect)
+
+      // Login successful - navigate to dashboard
+      navigate('/', { replace: true })
     } catch (err) {
-      setError(err.message)
+      const errorMessage = getUserFriendlyError(err)
+      setError(errorMessage)
       setLoading(false)
     }
   }
@@ -78,30 +65,15 @@ const Login = () => {
     setChangingPassword(true)
 
     try {
-      const user = auth.currentUser
-      if (!user) {
-        throw new Error('No user logged in')
-      }
-
-      // Update password in Firebase Auth
-      await updatePassword(user, newPassword)
-
-      // Clear the requirePasswordChange flag in Firestore
-      await updateDoc(doc(db, 'users', user.uid), {
-        requirePasswordChange: false,
-        passwordChangedAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      })
+      await apiChangePassword(password, newPassword)
 
       setShowPasswordChangeModal(false)
-      // Auth state listener will handle navigation to dashboard
+      // Navigate to dashboard after password change
+      navigate('/', { replace: true })
     } catch (err) {
       console.error('Error changing password:', err)
-      if (err.code === 'auth/requires-recent-login') {
-        setError('For security reasons, please log out and log in again before changing your password.')
-      } else {
-        setError(err.message || 'Failed to change password')
-      }
+      const errorMessage = getUserFriendlyError(err)
+      setError(errorMessage || 'Failed to change password')
       setChangingPassword(false)
     }
   }
@@ -112,30 +84,6 @@ const Login = () => {
         <h1>Speccon CRM</h1>
         <h2>Login</h2>
         {error && <div className="error-message">{error}</div>}
-        
-        <button 
-          onClick={handleMicrosoftLogin} 
-          disabled={microsoftLoading || loading} 
-          className="microsoft-login-button"
-        >
-          {microsoftLoading ? (
-            <span>Signing in...</span>
-          ) : (
-            <>
-              <svg width="21" height="21" viewBox="0 0 21 21" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect x="0" y="0" width="10" height="10" fill="#F25022"/>
-                <rect x="11" y="0" width="10" height="10" fill="#7FBA00"/>
-                <rect x="0" y="11" width="10" height="10" fill="#00A4EF"/>
-                <rect x="11" y="11" width="10" height="10" fill="#FFB900"/>
-              </svg>
-              <span>Sign in with Microsoft</span>
-            </>
-          )}
-        </button>
-
-        <div className="divider">
-          <span>OR</span>
-        </div>
 
         <form onSubmit={handleEmailPasswordLogin}>
           <div className="form-group">
@@ -147,7 +95,7 @@ const Login = () => {
               onChange={(e) => setEmail(e.target.value)}
               required
               placeholder="Enter your email"
-              disabled={loading || microsoftLoading}
+              disabled={loading}
             />
           </div>
           <div className="form-group">
@@ -160,13 +108,13 @@ const Login = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 placeholder="Enter your password"
-                disabled={loading || microsoftLoading}
+                disabled={loading}
               />
               <button
                 type="button"
                 className="password-toggle"
                 onClick={() => setShowPassword(!showPassword)}
-                disabled={loading || microsoftLoading}
+                disabled={loading}
                 aria-label={showPassword ? "Hide password" : "Show password"}
               >
                 {showPassword ? (
@@ -183,12 +131,25 @@ const Login = () => {
               </button>
             </div>
           </div>
-          <button 
-            type="submit" 
-            disabled={loading || microsoftLoading} 
+
+          <div className="form-group remember-me">
+            <label className="checkbox-label">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                disabled={loading}
+              />
+              <span>Remember me</span>
+            </label>
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
             className="email-login-button"
           >
-            {loading ? 'Logging in...' : 'Login with Email'}
+            {loading ? 'Logging in...' : 'Login'}
           </button>
         </form>
       </div>
@@ -245,4 +206,3 @@ const Login = () => {
 }
 
 export default Login
-

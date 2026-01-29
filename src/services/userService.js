@@ -1,74 +1,74 @@
-import { doc, setDoc, getDoc, getDocs, collection, updateDoc, query, where, serverTimestamp } from 'firebase/firestore'
-import { db } from '../config/firebase'
+/**
+ * User Service
+ *
+ * Provides user management operations via REST API.
+ */
+
+import { apiClient } from '../api/config/apiClient'
+import { USER_ENDPOINTS, buildUrl } from '../api/config/endpoints'
+import { unwrapResponse } from '../api/adapters/responseAdapter'
+import { normalizeEntity, normalizeEntities, normalizeDates, serializeDates } from '../api/adapters/idAdapter'
+
+const USER_DATE_FIELDS = ['createdAt', 'updatedAt', 'lastLogin', 'passwordChangedAt']
 
 /**
- * Create or update a user document in Firestore
- * @param {Object} user - Firebase Auth user object or user data object
- * @returns {Promise<void>}
+ * Normalize a user entity from API response
+ */
+const normalizeUser = (user) => {
+  if (!user) return null
+  const normalized = normalizeEntity(user)
+  return normalizeDates(normalized, USER_DATE_FIELDS)
+}
+
+/**
+ * Create or update a user document
+ * @param {Object} user - User data object
+ * @returns {Promise<Object>}
  */
 export const createOrUpdateUser = async (user) => {
-  if (!user) return
+  if (!user) return null
 
   try {
     const userId = user.uid || user.id
-    if (!userId) return
+    if (!userId) return null
 
-    const userRef = doc(db, 'users', userId)
-    const userSnap = await getDoc(userRef)
+    // Check if user exists
+    const existingUser = await getUserData(userId)
 
-    // Get existing data to preserve role and other fields
-    const existingData = userSnap.exists() ? userSnap.data() : {}
+    if (existingUser) {
+      // Update existing user
+      const updateData = {
+        email: user.email || existingUser.email || '',
+        displayName: user.displayName || existingUser.displayName || '',
+        photoURL: user.photoURL || existingUser.photoURL || '',
+        provider: user.provider || existingUser.provider || 'email',
+      }
 
-    // Only update fields that come from Firebase Auth, preserve all other fields
-    const updateData = {
-      email: user.email || existingData.email || '',
-      displayName: user.displayName || existingData.displayName || '',
-      photoURL: user.photoURL || existingData.photoURL || '',
-      provider: user.providerData?.[0]?.providerId || user.provider || existingData.provider || 'email',
-      lastLogin: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    }
+      const response = await apiClient.put(USER_ENDPOINTS.UPDATE(userId), updateData)
+      return normalizeUser(unwrapResponse(response))
+    } else {
+      // Create new user
+      const userEmail = user.email || ''
+      const shouldBeAdmin = userEmail.toLowerCase() === 'admin@speccon.co.za'
+      const defaultRole = shouldBeAdmin ? 'admin' : (user.role || 'salesperson')
 
-    // Auto-assign admin role for admin@speccon.co.za and make them system admin
-    const userEmail = user.email || existingData.email || ''
-    const shouldBeAdmin = userEmail.toLowerCase() === 'admin@speccon.co.za'
-    const shouldBeSystemAdmin = userEmail.toLowerCase() === 'admin@speccon.co.za'
-    const defaultRole = shouldBeAdmin ? 'admin' : (user.role || 'salesperson')
-
-    // If user doesn't exist, create new document with default role
-    if (!userSnap.exists()) {
-      await setDoc(userRef, {
-        ...updateData,
+      const createData = {
+        email: userEmail,
+        displayName: user.displayName || userEmail.split('@')[0] || '',
+        photoURL: user.photoURL || '',
+        provider: user.provider || 'email',
         phone: user.phone || '',
         title: user.title || '',
         department: user.department || '',
         bio: user.bio || '',
         role: defaultRole,
         customPermissions: [],
-        isSystemAdmin: shouldBeSystemAdmin, // Auto-set system admin for admin@speccon.co.za
-        tenantId: null, // New users don't have a tenant until assigned
-        createdAt: serverTimestamp(),
-      }, { merge: true })
-    } else {
-      // If user exists, ONLY update auth-related fields and lastLogin
-      // Preserve role, customPermissions, phone, title, department, bio, tenantId, etc.
-      // But auto-set admin role for admin@speccon.co.za (override if needed)
-      const finalRole = shouldBeAdmin ? 'admin' : (existingData.role || defaultRole)
-      const finalIsSystemAdmin = shouldBeSystemAdmin || existingData.isSystemAdmin || false
+        isSystemAdmin: shouldBeAdmin,
+        tenantId: null,
+      }
 
-      await setDoc(userRef, {
-        ...existingData, // Keep all existing data first
-        ...updateData,    // Then update only auth fields and timestamps
-        // Explicitly preserve these fields if they exist
-        role: finalRole,
-        customPermissions: existingData.customPermissions || [],
-        phone: existingData.phone || user.phone || '',
-        title: existingData.title || user.title || '',
-        department: existingData.department || user.department || '',
-        bio: existingData.bio || user.bio || '',
-        isSystemAdmin: finalIsSystemAdmin,
-        tenantId: existingData.tenantId || null, // Preserve tenant assignment
-      }, { merge: true })
+      const response = await apiClient.post(USER_ENDPOINTS.CREATE, createData)
+      return normalizeUser(unwrapResponse(response))
     }
   } catch (error) {
     console.error('Error creating/updating user document:', error)
@@ -77,20 +77,19 @@ export const createOrUpdateUser = async (user) => {
 }
 
 /**
- * Get user document from Firestore
+ * Get user document by ID
  * @param {string} userId - User ID (uid)
  * @returns {Promise<Object|null>}
  */
 export const getUserData = async (userId) => {
   try {
-    const userRef = doc(db, 'users', userId)
-    const userSnap = await getDoc(userRef)
-    
-    if (userSnap.exists()) {
-      return { id: userSnap.id, ...userSnap.data() }
-    }
-    return null
+    const response = await apiClient.get(USER_ENDPOINTS.GET_BY_ID(userId))
+    const user = unwrapResponse(response)
+    return normalizeUser(user)
   } catch (error) {
+    if (error.statusCode === 404) {
+      return null
+    }
     console.error('Error getting user data:', error)
     throw error
   }
@@ -102,9 +101,9 @@ export const getUserData = async (userId) => {
  */
 export const getUsers = async () => {
   try {
-    const usersRef = collection(db, 'users')
-    const snapshot = await getDocs(usersRef)
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+    const response = await apiClient.get(USER_ENDPOINTS.LIST)
+    const users = unwrapResponse(response)
+    return normalizeEntities(users).map(normalizeUser)
   } catch (error) {
     console.error('Error getting users:', error)
     throw error
@@ -119,11 +118,7 @@ export const getUsers = async () => {
  */
 export const updateUserRole = async (userId, roleId) => {
   try {
-    const userRef = doc(db, 'users', userId)
-    await updateDoc(userRef, {
-      role: roleId,
-      updatedAt: serverTimestamp()
-    })
+    await apiClient.put(USER_ENDPOINTS.UPDATE_ROLE, { userId, roleId })
   } catch (error) {
     console.error('Error updating user role:', error)
     throw error
@@ -137,20 +132,14 @@ export const updateUserRole = async (userId, roleId) => {
  */
 export const getUsersByTenant = async (tenantId) => {
   try {
-    const usersRef = collection(db, 'users')
-    let q
-
-    if (tenantId) {
-      q = query(usersRef, where('tenantId', '==', tenantId))
-    } else {
-      q = usersRef
-    }
-
-    const snapshot = await getDocs(q)
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+    const params = tenantId ? { tenantId } : {}
+    const url = buildUrl(USER_ENDPOINTS.LIST, params)
+    const response = await apiClient.get(url)
+    const users = unwrapResponse(response)
+    return normalizeEntities(users).map(normalizeUser)
   } catch (error) {
     console.error('Error getting users by tenant:', error)
-    throw error
+    return []
   }
 }
 
@@ -162,11 +151,7 @@ export const getUsersByTenant = async (tenantId) => {
  */
 export const assignUserTenant = async (userId, tenantId) => {
   try {
-    const userRef = doc(db, 'users', userId)
-    await updateDoc(userRef, {
-      tenantId,
-      updatedAt: serverTimestamp()
-    })
+    await apiClient.put('/api/User/AssignToTenant', { userId, tenantId })
   } catch (error) {
     console.error('Error assigning user to tenant:', error)
     throw error
@@ -181,11 +166,7 @@ export const assignUserTenant = async (userId, tenantId) => {
  */
 export const setUserAsSystemAdmin = async (userId, isAdmin = true) => {
   try {
-    const userRef = doc(db, 'users', userId)
-    await updateDoc(userRef, {
-      isSystemAdmin: isAdmin,
-      updatedAt: serverTimestamp()
-    })
+    await apiClient.put(USER_ENDPOINTS.UPDATE(userId), { isSystemAdmin: isAdmin })
   } catch (error) {
     console.error('Error setting system admin:', error)
     throw error
@@ -207,58 +188,31 @@ export const setUserAsSystemAdmin = async (userId, isAdmin = true) => {
  */
 export const updateUserHierarchy = async (userId, hierarchyData) => {
   try {
-    const userRef = doc(db, 'users', userId)
-
-    // Get current user data to validate
-    const userSnap = await getDoc(userRef)
-    if (!userSnap.exists()) {
-      throw new Error('User not found')
+    // Prevent self-assignment
+    if (hierarchyData.managerId === userId) {
+      throw new Error('User cannot be their own manager')
     }
 
-    const updateData = {
-      updatedAt: serverTimestamp()
-    }
-
-    // Update managerId if provided
-    if (hierarchyData.managerId !== undefined) {
-      // Prevent self-assignment
-      if (hierarchyData.managerId === userId) {
-        throw new Error('User cannot be their own manager')
-      }
-      updateData.managerId = hierarchyData.managerId
-    }
-
-    // Update salesLevel if provided
+    // Validate sales level
     if (hierarchyData.salesLevel !== undefined) {
       const validLevels = ['salesperson', 'sales_manager', 'sales_head', null]
       if (!validLevels.includes(hierarchyData.salesLevel)) {
         throw new Error('Invalid sales level')
       }
-      updateData.salesLevel = hierarchyData.salesLevel
     }
 
-    // Update assigned product lines if provided
+    const updateData = {}
+    if (hierarchyData.managerId !== undefined) {
+      updateData.managerId = hierarchyData.managerId
+    }
+    if (hierarchyData.salesLevel !== undefined) {
+      updateData.salesLevel = hierarchyData.salesLevel
+    }
     if (hierarchyData.assignedProductLineIds !== undefined) {
       updateData.assignedProductLineIds = hierarchyData.assignedProductLineIds || []
     }
 
-    await updateDoc(userRef, updateData)
-
-    // If managerId changed, update the manager's teamLeadOf array
-    if (hierarchyData.managerId !== undefined) {
-      const currentData = userSnap.data()
-      const oldManagerId = currentData.managerId
-
-      // Remove from old manager's team
-      if (oldManagerId && oldManagerId !== hierarchyData.managerId) {
-        await removeFromManagerTeam(oldManagerId, userId)
-      }
-
-      // Add to new manager's team
-      if (hierarchyData.managerId) {
-        await addToManagerTeam(hierarchyData.managerId, userId)
-      }
-    }
+    await apiClient.put(USER_ENDPOINTS.UPDATE(userId), updateData)
   } catch (error) {
     console.error('Error updating user hierarchy:', error)
     throw error
@@ -273,36 +227,7 @@ export const updateUserHierarchy = async (userId, hierarchyData) => {
  */
 export const assignSalespersonToManager = async (userId, managerId) => {
   try {
-    // Validate manager exists and has appropriate role
-    if (managerId) {
-      const managerRef = doc(db, 'users', managerId)
-      const managerSnap = await getDoc(managerRef)
-
-      if (!managerSnap.exists()) {
-        throw new Error('Manager not found')
-      }
-
-      const managerData = managerSnap.data()
-
-      // Get the user being assigned to determine valid manager roles
-      const userRef = doc(db, 'users', userId)
-      const userSnap = await getDoc(userRef)
-      const userData = userSnap.exists() ? userSnap.data() : {}
-
-      // Determine valid manager roles based on user's role
-      let validManagerRoles = []
-      if (userData.role === 'salesperson') {
-        validManagerRoles = ['manager']
-      } else if (userData.role === 'manager') {
-        validManagerRoles = ['group-sales-manager']
-      }
-
-      if (!validManagerRoles.includes(managerData.role)) {
-        throw new Error('Selected user is not a valid manager for this role')
-      }
-    }
-
-    await updateUserHierarchy(userId, { managerId })
+    await apiClient.put(USER_ENDPOINTS.UPDATE_MANAGER, { userId, managerId })
   } catch (error) {
     console.error('Error assigning salesperson to manager:', error)
     throw error
@@ -316,83 +241,10 @@ export const assignSalespersonToManager = async (userId, managerId) => {
  */
 export const removeSalespersonFromManager = async (userId) => {
   try {
-    const userRef = doc(db, 'users', userId)
-    const userSnap = await getDoc(userRef)
-
-    if (!userSnap.exists()) {
-      throw new Error('User not found')
-    }
-
-    const userData = userSnap.data()
-    const oldManagerId = userData.managerId
-
-    // Update user to remove manager
-    await updateDoc(userRef, {
-      managerId: null,
-      updatedAt: serverTimestamp()
-    })
-
-    // Remove from old manager's team
-    if (oldManagerId) {
-      await removeFromManagerTeam(oldManagerId, userId)
-    }
+    await apiClient.put(USER_ENDPOINTS.UPDATE_MANAGER, { userId, managerId: null })
   } catch (error) {
     console.error('Error removing salesperson from manager:', error)
     throw error
-  }
-}
-
-/**
- * Add a user to a manager's teamLeadOf array (internal helper)
- * @param {string} managerId - Manager's user ID
- * @param {string} userId - User to add to team
- */
-const addToManagerTeam = async (managerId, userId) => {
-  try {
-    const managerRef = doc(db, 'users', managerId)
-    const managerSnap = await getDoc(managerRef)
-
-    if (managerSnap.exists()) {
-      const managerData = managerSnap.data()
-      const currentTeam = managerData.teamLeadOf || []
-
-      if (!currentTeam.includes(userId)) {
-        await updateDoc(managerRef, {
-          teamLeadOf: [...currentTeam, userId],
-          updatedAt: serverTimestamp()
-        })
-      }
-    }
-  } catch (error) {
-    console.error('Error adding to manager team:', error)
-    // Don't throw - this is a denormalization update
-  }
-}
-
-/**
- * Remove a user from a manager's teamLeadOf array (internal helper)
- * @param {string} managerId - Manager's user ID
- * @param {string} userId - User to remove from team
- */
-const removeFromManagerTeam = async (managerId, userId) => {
-  try {
-    const managerRef = doc(db, 'users', managerId)
-    const managerSnap = await getDoc(managerRef)
-
-    if (managerSnap.exists()) {
-      const managerData = managerSnap.data()
-      const currentTeam = managerData.teamLeadOf || []
-
-      if (currentTeam.includes(userId)) {
-        await updateDoc(managerRef, {
-          teamLeadOf: currentTeam.filter(id => id !== userId),
-          updatedAt: serverTimestamp()
-        })
-      }
-    }
-  } catch (error) {
-    console.error('Error removing from manager team:', error)
-    // Don't throw - this is a denormalization update
   }
 }
 
@@ -403,13 +255,12 @@ const removeFromManagerTeam = async (managerId, userId) => {
  */
 export const getDirectReports = async (managerId) => {
   try {
-    const usersRef = collection(db, 'users')
-    const q = query(usersRef, where('managerId', '==', managerId))
-    const snapshot = await getDocs(q)
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+    const response = await apiClient.get(USER_ENDPOINTS.GET_DIRECT_REPORTS(managerId))
+    const reports = unwrapResponse(response)
+    return normalizeEntities(reports).map(normalizeUser)
   } catch (error) {
     console.error('Error getting direct reports:', error)
-    throw error
+    return []
   }
 }
 
@@ -420,20 +271,12 @@ export const getDirectReports = async (managerId) => {
  */
 export const getTeamMembers = async (managerId) => {
   try {
-    const allMembers = []
-    const directReports = await getDirectReports(managerId)
-
-    for (const report of directReports) {
-      allMembers.push(report)
-      // Recursively get sub-team members
-      const subMembers = await getTeamMembers(report.id)
-      allMembers.push(...subMembers)
-    }
-
-    return allMembers
+    const response = await apiClient.get(USER_ENDPOINTS.GET_TEAM_MEMBERS(managerId))
+    const members = unwrapResponse(response)
+    return normalizeEntities(members).map(normalizeUser)
   } catch (error) {
     console.error('Error getting team members:', error)
-    throw error
+    return []
   }
 }
 
@@ -457,26 +300,25 @@ export const getAccessibleUserIds = async (userId, userData = null) => {
 
     const salesLevel = userData.salesLevel || null
     const role = userData.role || 'salesperson'
-    // Normalize role to lowercase without spaces/dashes/underscores for comparison
     const roleLower = role.toLowerCase().replace(/[\s_-]/g, '')
 
     // Sales Head (Group Sales Manager) or Admin sees everyone in tenant
     const isSalesHead = salesLevel === 'sales_head' ||
                         roleLower === 'saleshead' ||
                         roleLower === 'groupsalesmanager' ||
-                        roleLower === 'groupsalesmanagers' ||  // plural variant
+                        roleLower === 'groupsalesmanagers' ||
                         roleLower === 'admin'
     if (isSalesHead) {
       const tenantUsers = await getUsersByTenant(userData.tenantId)
       return tenantUsers.map(u => u.id)
     }
 
-    // Sales Manager (regular manager) sees only their direct reports
+    // Sales Manager sees only their direct reports
     const isManager = salesLevel === 'sales_manager' ||
                       roleLower === 'salesmanager' ||
-                      roleLower === 'salesmanagers' ||  // plural variant
+                      roleLower === 'salesmanagers' ||
                       roleLower === 'manager' ||
-                      roleLower === 'managers'  // plural variant
+                      roleLower === 'managers'
     if (isManager) {
       const teamMembers = await getTeamMembers(userId)
       return [...accessibleIds, ...teamMembers.map(m => m.id)]
@@ -486,16 +328,12 @@ export const getAccessibleUserIds = async (userId, userData = null) => {
     return accessibleIds
   } catch (error) {
     console.error('Error getting accessible user IDs:', error)
-    return [userId] // Fallback to just self
+    return [userId]
   }
 }
 
 /**
  * Get potential managers for a user based on their role
- * Hierarchy:
- * - Salesperson → can have Manager as their manager
- * - Manager → can have Group Sales Manager as their manager
- * - Group Sales Manager → no manager (top of hierarchy)
  * @param {string} tenantId - Tenant ID (required - must filter by tenant)
  * @param {string} userRole - The role of the user we're finding managers for
  * @returns {Promise<Array>} - Array of valid manager user objects
@@ -506,24 +344,21 @@ export const getManagersInTenant = async (tenantId, userRole = 'salesperson') =>
       console.warn('getManagersInTenant called without tenantId - returning empty array')
       return []
     }
-    // Filter by tenant - managers must be in the same tenant
+
     const users = await getUsersByTenant(tenantId)
 
     // Determine valid manager roles based on user's role
     let validManagerRoles = []
     if (userRole === 'salesperson') {
-      // Salespeople can have Managers as their manager
       validManagerRoles = ['manager']
     } else if (userRole === 'manager') {
-      // Managers can have Group Sales Managers as their manager
       validManagerRoles = ['group-sales-manager']
     }
-    // Group Sales Managers have no manager (top of hierarchy)
 
     return users.filter(u => validManagerRoles.includes(u.role))
   } catch (error) {
     console.error('Error getting managers:', error)
-    throw error
+    return []
   }
 }
 
@@ -534,24 +369,12 @@ export const getManagersInTenant = async (tenantId, userRole = 'salesperson') =>
  */
 export const getManagerChain = async (userId) => {
   try {
-    const chain = []
-    let currentUser = await getUserData(userId)
-
-    while (currentUser?.managerId) {
-      const manager = await getUserData(currentUser.managerId)
-      if (!manager) break
-
-      chain.push(manager)
-      currentUser = manager
-
-      // Safety: prevent infinite loops
-      if (chain.length > 10) break
-    }
-
-    return chain
+    const response = await apiClient.get(USER_ENDPOINTS.GET_HIERARCHY(userId))
+    const hierarchy = unwrapResponse(response)
+    return normalizeEntities(hierarchy.managerChain || []).map(normalizeUser)
   } catch (error) {
     console.error('Error getting manager chain:', error)
-    throw error
+    return []
   }
 }
 
@@ -563,10 +386,8 @@ export const getManagerChain = async (userId) => {
  */
 export const assignProductLinesToManager = async (managerId, productLineIds) => {
   try {
-    const userRef = doc(db, 'users', managerId)
-    await updateDoc(userRef, {
-      assignedProductLineIds: productLineIds || [],
-      updatedAt: serverTimestamp()
+    await apiClient.put(USER_ENDPOINTS.UPDATE(managerId), {
+      assignedProductLineIds: productLineIds || []
     })
   } catch (error) {
     console.error('Error assigning product lines to manager:', error)
@@ -582,27 +403,28 @@ export const assignProductLinesToManager = async (managerId, productLineIds) => 
  */
 export const getEffectiveProductLineIds = async (userId) => {
   try {
-    const userData = await getUserData(userId)
-    if (!userData) return []
-
-    // If user has their own assigned product lines, use those
-    if (userData.assignedProductLineIds?.length > 0) {
-      return userData.assignedProductLineIds
-    }
-
-    // Otherwise, inherit from manager
-    if (userData.managerId) {
-      const managerData = await getUserData(userData.managerId)
-      if (managerData?.assignedProductLineIds?.length > 0) {
-        return managerData.assignedProductLineIds
-      }
-    }
-
-    // No restrictions - return empty (means all products available)
-    return []
+    const response = await apiClient.get(`/api/User/${userId}/ProductLines`)
+    const result = unwrapResponse(response)
+    return result.productLineIds || []
   } catch (error) {
     console.error('Error getting effective product lines:', error)
     return []
   }
 }
 
+/**
+ * Update user custom permissions
+ * @param {string} userId - User ID
+ * @param {string[]} customPermissions - Array of permission IDs
+ * @returns {Promise<void>}
+ */
+export const updateUserPermissions = async (userId, customPermissions) => {
+  try {
+    await apiClient.put(USER_ENDPOINTS.UPDATE(userId), {
+      customPermissions: customPermissions || []
+    })
+  } catch (error) {
+    console.error('Error updating user permissions:', error)
+    throw error
+  }
+}

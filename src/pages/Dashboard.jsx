@@ -17,7 +17,6 @@ import {
 } from '../services/firestoreService'
 import { getFinancialData, UPLOAD_TYPES, calculateFinancialYear } from '../services/financialUploadService'
 import { getUsersByTenant } from '../services/userService'
-import { Timestamp } from 'firebase/firestore'
 import { useTenant } from '../context/TenantContext'
 import './Dashboard.css'
 
@@ -407,10 +406,9 @@ const Dashboard = () => {
     setSavingFollowUp(true)
     try {
       const followUpDate = new Date(`${followUpData.date}T09:00:00`)
-      const followUpTimestamp = Timestamp.fromDate(followUpDate)
 
       await updateClientFollowUp(clientId, {
-        date: followUpTimestamp,
+        date: followUpDate.toISOString(),
         reason: followUpData.reason,
         type: followUpData.type
       }, currentUserId)

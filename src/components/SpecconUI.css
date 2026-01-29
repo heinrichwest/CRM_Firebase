@@ -1,0 +1,458 @@
+/* SpecconUI.css - Reusable Design System */
+
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+
+:root {
+    --speccon-primary: #12265E;
+    --speccon-primary-dark: #0a163a;
+    --speccon-accent: #FFA600;
+    --speccon-accent-hover: #e69500;
+    --speccon-bg: #f5f5f5;
+    --speccon-card-bg: #ffffff;
+    --speccon-text-main: #12265E;
+    --speccon-text-secondary: #666666;
+    --speccon-border: #e0e0e0;
+    --speccon-success: #558b2f;
+    --speccon-warning: #e65100;
+    --speccon-danger: #c62828;
+    --speccon-info: #1565c0;
+}
+
+/* --- Layout --- */
+
+.speccon-layout {
+    min-height: 100vh;
+    background-color: var(--speccon-bg);
+    font-family: 'Roboto', sans-serif;
+    color: var(--speccon-text-main);
+    display: flex;
+    flex-direction: column;
+}
+
+.speccon-header {
+    background-color: var(--speccon-primary);
+    color: white;
+    box-shadow: 0 2px 12px rgba(18, 38, 94, 0.2);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    height: 70px;
+}
+
+.speccon-header-content {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 24px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.speccon-brand-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.speccon-brand {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0;
+    color: white;
+    letter-spacing: -0.02em;
+}
+
+.speccon-mobile-toggle {
+    display: none;
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    cursor: pointer;
+}
+
+.speccon-nav {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.speccon-nav-link {
+    color: rgba(255, 255, 255, 0.85);
+    text-decoration: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    transition: all 0.2s;
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.speccon-nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.speccon-nav-link.active {
+    background-color: rgba(255, 255, 255, 0.2);
+    color: white;
+    font-weight: 700;
+}
+
+.speccon-nav-link.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60%;
+    height: 3px;
+    background-color: var(--speccon-accent);
+    border-radius: 2px 2px 0 0;
+}
+
+.speccon-nav-badge {
+    background-color: var(--speccon-danger);
+    color: white;
+    font-size: 0.7rem;
+    padding: 2px 6px;
+    border-radius: 99px;
+    line-height: 1;
+}
+
+.speccon-main {
+    flex: 1;
+    padding: 30px 24px;
+    max-width: 1400px;
+    margin: 0 auto;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* --- User Profile --- */
+
+.speccon-user-profile {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 12px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 30px;
+}
+
+.speccon-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    overflow: hidden;
+}
+
+.speccon-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.speccon-user-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.speccon-user-role {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    opacity: 0.8;
+    letter-spacing: 0.05em;
+}
+
+.speccon-logout-btn {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    opacity: 0.7;
+    padding: 4px;
+    transition: opacity 0.2s;
+}
+
+.speccon-logout-btn:hover {
+    opacity: 1;
+    color: var(--speccon-accent);
+}
+
+/* --- Typography --- */
+
+.speccon-page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 30px;
+    border-bottom: 2px solid #e0e0e0;
+    padding-bottom: 15px;
+}
+
+.speccon-page-title-group h1 {
+    font-size: 2rem;
+    color: var(--speccon-primary);
+    margin: 0;
+    line-height: 1.2;
+}
+
+.speccon-subtitle {
+    font-size: 0.9rem;
+    color: var(--speccon-text-secondary);
+    font-weight: 400;
+    margin-left: 4px;
+}
+
+/* --- Cards --- */
+
+.speccon-card {
+    background: var(--speccon-card-bg);
+    padding: 24px;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(18, 38, 94, 0.08);
+    /* Slightly softer shadow */
+    border-top: 4px solid var(--speccon-primary);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    box-sizing: border-box;
+}
+
+.speccon-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--speccon-border);
+}
+
+.speccon-card-header h2 {
+    font-size: 1.25rem;
+    color: var(--speccon-primary);
+    margin: 0;
+    font-weight: 700;
+}
+
+.speccon-card-content {
+    flex: 1;
+}
+
+.speccon-link-btn {
+    background: none;
+    border: none;
+    color: var(--speccon-accent);
+    font-weight: 500;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: color 0.2s;
+    padding: 0;
+}
+
+.speccon-link-btn:hover {
+    color: var(--speccon-accent-hover);
+    text-decoration: underline;
+}
+
+/* --- Grid --- */
+.speccon-grid {
+    display: grid;
+    width: 100%;
+}
+
+@media (max-width: 1024px) {
+    .speccon-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+}
+
+@media (max-width: 768px) {
+    .speccon-grid {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+/* --- Stats & Data --- */
+
+.speccon-stat-item {
+    padding: 12px 16px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    text-align: center;
+    border: 1px solid var(--speccon-border);
+    margin-bottom: 10px;
+}
+
+.speccon-stat-label {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--speccon-text-secondary);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.speccon-stat-value {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--speccon-primary);
+}
+
+.speccon-stat-sub {
+    display: block;
+    font-size: 0.8rem;
+    color: #888;
+    margin-top: 4px;
+}
+
+/* --- Badges --- */
+
+.speccon-badge {
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    display: inline-block;
+}
+
+.speccon-badge-danger {
+    background: #ffebee;
+    color: var(--speccon-danger);
+}
+
+.speccon-badge-warning {
+    background: #fff3e0;
+    color: var(--speccon-warning);
+}
+
+.speccon-badge-success {
+    background: #e8f5e9;
+    color: var(--speccon-success);
+}
+
+.speccon-badge-info {
+    background: #e3f2fd;
+    color: var(--speccon-info);
+}
+
+.speccon-badge-neutral {
+    background: #eeeeee;
+    color: #666;
+}
+
+/* --- Buttons --- */
+
+.speccon-btn {
+    padding: 10px 20px;
+    border-radius: 6px;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.speccon-btn-primary {
+    background-color: var(--speccon-primary);
+    color: white;
+}
+
+.speccon-btn-primary:hover {
+    background-color: var(--speccon-primary-dark);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.speccon-btn-secondary {
+    background-color: white;
+    border: 2px solid var(--speccon-primary);
+    color: var(--speccon-primary);
+}
+
+.speccon-btn-secondary:hover {
+    background-color: #f0f4ff;
+}
+
+.speccon-btn-accent {
+    background-color: var(--speccon-accent);
+    color: var(--speccon-primary);
+}
+
+.speccon-btn-accent:hover {
+    background-color: var(--speccon-accent-hover);
+}
+
+.speccon-btn-small {
+    padding: 6px 12px;
+    font-size: 0.85rem;
+}
+
+.speccon-btn-medium {
+    padding: 10px 20px;
+    font-size: 1rem;
+}
+
+.speccon-btn-large {
+    padding: 12px 24px;
+    font-size: 1.1rem;
+}
+
+/* --- Mobile Responsiveness --- */
+
+@media (max-width: 768px) {
+    .speccon-header {
+        height: auto;
+        padding: 10px 0;
+    }
+
+    .speccon-header-content {
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .speccon-mobile-toggle {
+        display: block;
+    }
+
+    .speccon-nav {
+        display: none;
+        width: 100%;
+        flex-direction: column;
+        padding-top: 10px;
+    }
+
+    .speccon-nav.open {
+        display: flex;
+    }
+
+    .speccon-nav-link {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .speccon-nav-link.active::after {
+        display: none;
+    }
+
+    .speccon-header-right {
+        width: 100%;
+        justify-content: center;
+        display: flex;
+    }
+}

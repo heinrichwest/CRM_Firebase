@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo } from 'react'
-import { getAuth } from 'firebase/auth'
 import { useTenant } from '../context/TenantContext'
 import {
   getClients,
@@ -13,8 +12,7 @@ import { getFinancialData, UPLOAD_TYPES, calculateFinancialYear } from '../servi
 import './EditFinancial.css'
 
 const EditFinancial = () => {
-  const auth = getAuth()
-  const { getTenantId, userData } = useTenant()
+  const { getTenantId, userData, currentUser } = useTenant()
   const tenantId = getTenantId()
 
   const [loading, setLoading] = useState(true)
@@ -343,7 +341,7 @@ const EditFinancial = () => {
   // Save all changes
   const handleSaveAll = async () => {
     try {
-      const userId = auth.currentUser?.uid || 'system'
+      const userId = currentUser?.uid || 'system'
       const remainingMonths = getRemainingMonths()
       
       // Group edits by client

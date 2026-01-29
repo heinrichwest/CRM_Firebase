@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
-import { getAuth, updateProfile } from 'firebase/auth'
 import { getUserData, createOrUpdateUser } from '../services/userService'
+import { useTenant } from '../context/TenantContext'
 import './Profile.css'
 
 const Profile = () => {
+  const { currentUser } = useTenant()
   const [user, setUser] = useState(null)
   const [userData, setUserData] = useState(null)
   const [managerData, setManagerData] = useState(null)
@@ -18,15 +19,12 @@ const Profile = () => {
     bio: ''
   })
 
-  const auth = getAuth()
-
   useEffect(() => {
     loadUserProfile()
-  }, [])
+  }, [currentUser])
 
   const loadUserProfile = async () => {
     try {
-      const currentUser = auth.currentUser
       if (currentUser) {
         setUser(currentUser)
         setFormData({
@@ -38,7 +36,7 @@ const Profile = () => {
           bio: ''
         })
 
-        // Load additional user data from Firestore
+        // Load additional user data from API
         const data = await getUserData(currentUser.uid)
         if (data) {
           setUserData(data)
@@ -69,16 +67,11 @@ const Profile = () => {
   const handleSave = async (e) => {
     e.preventDefault()
     try {
-      const currentUser = auth.currentUser
       if (currentUser) {
-        // Update Firebase Auth profile
-        await updateProfile(currentUser, {
-          displayName: formData.displayName
-        })
-
-        // Update Firestore user document
+        // Update user document via API
         await createOrUpdateUser({
-          ...currentUser,
+          uid: currentUser.uid,
+          email: currentUser.email,
           displayName: formData.displayName,
           phone: formData.phone,
           title: formData.title,
@@ -133,7 +126,7 @@ const Profile = () => {
       <div className="profile-header">
         <h1>My Profile</h1>
         {!editing && (
-          <button 
+          <button
             className="edit-profile-btn"
             onClick={() => setEditing(true)}
           >
@@ -209,8 +202,8 @@ const Profile = () => {
             </div>
 
             <div className="form-actions">
-              <button 
-                type="button" 
+              <button
+                type="button"
                 className="cancel-btn"
                 onClick={() => {
                   setEditing(false)
@@ -294,11 +287,7 @@ const Profile = () => {
                   </div>
                   <div className="info-item">
                     <span className="info-label">Provider</span>
-                    <span className="info-value">
-                      {user.providerData?.[0]?.providerId === 'microsoft.com' 
-                        ? 'Microsoft' 
-                        : user.providerData?.[0]?.providerId || 'Email/Password'}
-                    </span>
+                    <span className="info-value">Email/Password</span>
                   </div>
                   {userData?.createdAt && (
                     <div className="info-item">

@@ -1,11 +1,10 @@
 import { useState } from 'react'
-import { getAuth } from 'firebase/auth'
-import { Timestamp } from 'firebase/firestore'
 import { createInteraction } from '../services/firestoreService'
+import { useTenant } from '../context/TenantContext'
 import './InteractionCapture.css'
 
 const InteractionCapture = ({ clientId, client, contacts = [], onInteractionCreated }) => {
-  const auth = getAuth()
+  const { currentUser } = useTenant()
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
 
@@ -169,11 +168,11 @@ const InteractionCapture = ({ clientId, client, contacts = [], onInteractionCrea
 
     try {
       const dateTime = new Date(`${formData.date}T${formData.time}`)
-      const timestamp = Timestamp.fromDate(dateTime)
+      const timestamp = dateTime.toISOString()
 
-      // Convert follow-up date to Timestamp
+      // Convert follow-up date to ISO string
       const followUpDateTime = new Date(`${formData.followUpDate}T09:00:00`)
-      const followUpTimestamp = Timestamp.fromDate(followUpDateTime)
+      const followUpTimestamp = followUpDateTime.toISOString()
 
       await createInteraction(clientId, {
         type: formData.type.toLowerCase(),
@@ -185,8 +184,8 @@ const InteractionCapture = ({ clientId, client, contacts = [], onInteractionCrea
         documentsShared: formData.documentsShared,
         objectionsRaised: formData.objectionsRaised,
         nextSteps: formData.nextSteps,
-        userId: auth.currentUser?.uid,
-        userName: auth.currentUser?.displayName || auth.currentUser?.email,
+        userId: currentUser?.uid,
+        userName: currentUser?.displayName || currentUser?.email,
         timestamp: timestamp,
         // Follow-up data - will be used to update client's next follow-up
         followUpDate: followUpTimestamp,

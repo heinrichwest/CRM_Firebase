@@ -1,5 +1,15 @@
-import { collection, doc, getDoc, getDocs, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore'
-import { db } from '../config/firebase'
+/**
+ * Role Service
+ *
+ * Provides role management operations via REST API.
+ */
+
+import { apiClient } from '../api/config/apiClient'
+import { ROLE_ENDPOINTS, PERMISSION_ENDPOINTS, USER_ENDPOINTS, buildUrl } from '../api/config/endpoints'
+import { unwrapResponse } from '../api/adapters/responseAdapter'
+import { normalizeEntity, normalizeEntities, normalizeDates } from '../api/adapters/idAdapter'
+
+const ROLE_DATE_FIELDS = ['createdAt', 'updatedAt']
 
 // Default system features grouped by category
 export const SYSTEM_FEATURES = [
@@ -172,31 +182,32 @@ const DEFAULT_ROLES = {
 }
 
 /**
- * Initialize default roles in Firestore
+ * Normalize a role entity from API response
+ */
+const normalizeRole = (role) => {
+  if (!role) return null
+  const normalized = normalizeEntity(role)
+  return normalizeDates(normalized, ROLE_DATE_FIELDS)
+}
+
+/**
+ * Initialize default roles (via API)
  */
 export const initializeDefaultRoles = async () => {
   try {
-    const rolesRef = collection(db, 'roles')
-    const snapshot = await getDocs(rolesRef)
-    
-    // Only initialize if roles don't exist
-    if (snapshot.empty) {
-      const batch = []
+    // Check if roles exist
+    const existingRoles = await getRoles()
+
+    if (existingRoles.length === 0) {
+      // Create default roles via API
       for (const [roleId, roleData] of Object.entries(DEFAULT_ROLES)) {
-        const roleDoc = doc(db, 'roles', roleId)
-        batch.push(setDoc(roleDoc, {
-          ...roleData,
-          id: roleId,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp()
-        }))
+        await saveRole(roleId, roleData)
       }
-      await Promise.all(batch)
       console.log('Default roles initialized')
     }
   } catch (error) {
     console.error('Error initializing default roles:', error)
-    throw error
+    // Don't throw - fallback to in-memory defaults
   }
 }
 
@@ -205,12 +216,16 @@ export const initializeDefaultRoles = async () => {
  */
 export const getRoles = async () => {
   try {
-    const rolesRef = collection(db, 'roles')
-    const snapshot = await getDocs(rolesRef)
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+    const response = await apiClient.get(ROLE_ENDPOINTS.LIST)
+    const roles = unwrapResponse(response)
+    return normalizeEntities(roles).map(normalizeRole)
   } catch (error) {
     console.error('Error getting roles:', error)
-    throw error
+    // Return default roles from memory on error
+    return Object.entries(DEFAULT_ROLES).map(([id, data]) => ({
+      id,
+      ...data
+    }))
   }
 }
 
@@ -219,26 +234,15 @@ export const getRoles = async () => {
  */
 export const getRole = async (roleId) => {
   try {
-    const roleRef = doc(db, 'roles', roleId)
-    const roleSnap = await getDoc(roleRef)
-    
-    if (roleSnap.exists()) {
-      return { id: roleSnap.id, ...roleSnap.data() }
-    }
-    
-    // If role doesn't exist in Firestore, return default role from memory
-    if (DEFAULT_ROLES[roleId]) {
-      return { id: roleId, ...DEFAULT_ROLES[roleId] }
-    }
-    
-    // Fallback to salesperson
-    return { id: 'salesperson', ...DEFAULT_ROLES.salesperson }
+    const response = await apiClient.get(ROLE_ENDPOINTS.GET_BY_ID(roleId))
+    const role = unwrapResponse(response)
+    return normalizeRole(role)
   } catch (error) {
-    console.error('Error getting role:', error)
-    // Return default role on error instead of throwing
+    // If role doesn't exist in API, return default role from memory
     if (DEFAULT_ROLES[roleId]) {
       return { id: roleId, ...DEFAULT_ROLES[roleId] }
     }
+    // Fallback to salesperson
     return { id: 'salesperson', ...DEFAULT_ROLES.salesperson }
   }
 }
@@ -248,20 +252,21 @@ export const getRole = async (roleId) => {
  */
 export const saveRole = async (roleId, roleData) => {
   try {
-    const roleRef = doc(db, 'roles', roleId)
-    const roleSnap = await getDoc(roleRef)
-    
+    const existingRole = await getRole(roleId).catch(() => null)
+
     const data = {
       ...roleData,
       id: roleId,
-      updatedAt: serverTimestamp()
     }
-    
-    if (!roleSnap.exists()) {
-      data.createdAt = serverTimestamp()
+
+    if (existingRole && existingRole.id !== 'salesperson') {
+      // Update existing role
+      await apiClient.put(ROLE_ENDPOINTS.UPDATE(roleId), data)
+    } else {
+      // Create new role
+      await apiClient.post(ROLE_ENDPOINTS.CREATE, data)
     }
-    
-    await setDoc(roleRef, data, { merge: true })
+
     return roleId
   } catch (error) {
     console.error('Error saving role:', error)
@@ -278,12 +283,8 @@ export const deleteRole = async (roleId) => {
     if (Object.keys(DEFAULT_ROLES).includes(roleId)) {
       throw new Error('Cannot delete default roles')
     }
-    
-    const roleRef = doc(db, 'roles', roleId)
-    await updateDoc(roleRef, {
-      deleted: true,
-      updatedAt: serverTimestamp()
-    })
+
+    await apiClient.delete(ROLE_ENDPOINTS.DELETE(roleId))
   } catch (error) {
     console.error('Error deleting role:', error)
     throw error
@@ -295,17 +296,16 @@ export const deleteRole = async (roleId) => {
  */
 export const hasPermission = async (userId, permission) => {
   try {
-    const userRef = doc(db, 'users', userId)
-    const userSnap = await getDoc(userRef)
-    
-    if (!userSnap.exists()) return false
-    
-    const userData = userSnap.data()
+    const response = await apiClient.get(USER_ENDPOINTS.GET_BY_ID(userId))
+    const userData = unwrapResponse(response)
+
+    if (!userData) return false
+
     const roleId = userData.role || 'salesperson'
-    
     const role = await getRole(roleId)
+
     if (!role) return false
-    
+
     return role.permissions?.includes(permission) || false
   } catch (error) {
     console.error('Error checking permission:', error)
@@ -318,18 +318,15 @@ export const hasPermission = async (userId, permission) => {
  */
 export const getUserRole = async (userId) => {
   try {
-    const userRef = doc(db, 'users', userId)
-    const userSnap = await getDoc(userRef)
-    
-    if (!userSnap.exists()) return null
-    
-    const userData = userSnap.data()
+    const response = await apiClient.get(USER_ENDPOINTS.GET_BY_ID(userId))
+    const userData = unwrapResponse(response)
+
+    if (!userData) return null
+
     const roleId = userData.role || 'salesperson'
-    
     return await getRole(roleId)
   } catch (error) {
     console.error('Error getting user role:', error)
     return null
   }
 }
-

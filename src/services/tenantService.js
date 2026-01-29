@@ -1,17 +1,24 @@
-import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  addDoc,
-  setDoc,
-  updateDoc,
-  query,
-  where,
-  serverTimestamp,
-  writeBatch
-} from 'firebase/firestore'
-import { db } from '../config/firebase'
+/**
+ * Tenant Service
+ *
+ * Provides tenant management operations via REST API.
+ */
+
+import { apiClient } from '../api/config/apiClient'
+import { TENANT_ENDPOINTS, USER_ENDPOINTS, buildUrl } from '../api/config/endpoints'
+import { unwrapResponse } from '../api/adapters/responseAdapter'
+import { normalizeEntity, normalizeEntities, normalizeDates } from '../api/adapters/idAdapter'
+
+const TENANT_DATE_FIELDS = ['createdAt', 'updatedAt', 'deletedAt']
+
+/**
+ * Normalize a tenant entity from API response
+ */
+const normalizeTenant = (tenant) => {
+  if (!tenant) return null
+  const normalized = normalizeEntity(tenant)
+  return normalizeDates(normalized, TENANT_DATE_FIELDS)
+}
 
 // ============================================================================
 // TENANT MANAGEMENT
@@ -22,15 +29,15 @@ import { db } from '../config/firebase'
  */
 export const getTenants = async () => {
   try {
-    const tenantsRef = collection(db, 'tenants')
-    const snapshot = await getDocs(tenantsRef)
-    return snapshot.docs
-      .map(doc => ({ id: doc.id, ...doc.data() }))
+    const response = await apiClient.get(TENANT_ENDPOINTS.LIST)
+    const tenants = unwrapResponse(response)
+    return normalizeEntities(tenants)
+      .map(normalizeTenant)
       .filter(t => !t.deleted)
       .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
   } catch (error) {
     console.error('Error getting tenants:', error)
-    throw error
+    return []
   }
 }
 
@@ -39,16 +46,15 @@ export const getTenants = async () => {
  */
 export const getTenant = async (tenantId) => {
   try {
-    const tenantRef = doc(db, 'tenants', tenantId)
-    const tenantSnap = await getDoc(tenantRef)
-
-    if (tenantSnap.exists()) {
-      return { id: tenantSnap.id, ...tenantSnap.data() }
-    }
-    return null
+    const response = await apiClient.get(TENANT_ENDPOINTS.GET_BY_ID(tenantId))
+    const tenant = unwrapResponse(response)
+    return normalizeTenant(tenant)
   } catch (error) {
+    if (error.statusCode === 404) {
+      return null
+    }
     console.error('Error getting tenant:', error)
-    throw error
+    return null
   }
 }
 
@@ -57,14 +63,11 @@ export const getTenant = async (tenantId) => {
  * @param {Object} tenantData - Tenant information
  * @param {string} tenantData.name - Tenant name
  * @param {string} tenantData.description - Tenant description
- * @param {Object} adminUserData - First admin user data
- * @param {string} adminUserData.email - Admin email
- * @param {string} adminUserData.displayName - Admin display name
+ * @param {Object} adminUserData - First admin user data (optional)
  * @returns {Promise<{tenantId: string}>}
  */
 export const createTenant = async (tenantData, adminUserData = null) => {
   try {
-    // Generate a tenant ID from the name
     const tenantId = tenantData.id ||
       tenantData.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
 
@@ -74,9 +77,8 @@ export const createTenant = async (tenantData, adminUserData = null) => {
       throw new Error('A tenant with this ID already exists')
     }
 
-    const tenantRef = doc(db, 'tenants', tenantId)
-
-    await setDoc(tenantRef, {
+    const payload = {
+      id: tenantId,
       name: tenantData.name,
       description: tenantData.description || '',
       status: 'active',
@@ -85,10 +87,10 @@ export const createTenant = async (tenantData, adminUserData = null) => {
         financialYearStart: tenantData.financialYearStart || 'March',
         financialYearEnd: tenantData.financialYearEnd || 'February',
         ...tenantData.settings
-      },
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    })
+      }
+    }
+
+    await apiClient.post(TENANT_ENDPOINTS.CREATE, payload)
 
     return { tenantId }
   } catch (error) {
@@ -102,11 +104,7 @@ export const createTenant = async (tenantData, adminUserData = null) => {
  */
 export const updateTenant = async (tenantId, updateData) => {
   try {
-    const tenantRef = doc(db, 'tenants', tenantId)
-    await updateDoc(tenantRef, {
-      ...updateData,
-      updatedAt: serverTimestamp()
-    })
+    await apiClient.put(TENANT_ENDPOINTS.UPDATE(tenantId), updateData)
   } catch (error) {
     console.error('Error updating tenant:', error)
     throw error
@@ -118,12 +116,7 @@ export const updateTenant = async (tenantId, updateData) => {
  */
 export const deleteTenant = async (tenantId) => {
   try {
-    const tenantRef = doc(db, 'tenants', tenantId)
-    await updateDoc(tenantRef, {
-      deleted: true,
-      deletedAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    })
+    await apiClient.delete(TENANT_ENDPOINTS.SOFT_DELETE(tenantId))
   } catch (error) {
     console.error('Error deleting tenant:', error)
     throw error
@@ -135,20 +128,8 @@ export const deleteTenant = async (tenantId) => {
  */
 export const getTenantStats = async (tenantId) => {
   try {
-    // Count users for this tenant
-    const usersRef = collection(db, 'users')
-    const usersQuery = query(usersRef, where('tenantId', '==', tenantId))
-    const usersSnap = await getDocs(usersQuery)
-
-    // Count clients for this tenant
-    const clientsRef = collection(db, 'clients')
-    const clientsQuery = query(clientsRef, where('tenantId', '==', tenantId))
-    const clientsSnap = await getDocs(clientsQuery)
-
-    return {
-      userCount: usersSnap.size,
-      clientCount: clientsSnap.size
-    }
+    const response = await apiClient.get(TENANT_ENDPOINTS.GET_STATISTICS(tenantId))
+    return unwrapResponse(response)
   } catch (error) {
     console.error('Error getting tenant stats:', error)
     return { userCount: 0, clientCount: 0 }
@@ -164,12 +145,7 @@ export const getTenantStats = async (tenantId) => {
  */
 export const assignUserToTenant = async (userId, tenantId, role = 'salesperson') => {
   try {
-    const userRef = doc(db, 'users', userId)
-    await updateDoc(userRef, {
-      tenantId,
-      role,
-      updatedAt: serverTimestamp()
-    })
+    await apiClient.put('/api/User/AssignToTenant', { userId, tenantId, role })
   } catch (error) {
     console.error('Error assigning user to tenant:', error)
     throw error
@@ -181,11 +157,7 @@ export const assignUserToTenant = async (userId, tenantId, role = 'salesperson')
  */
 export const removeUserFromTenant = async (userId) => {
   try {
-    const userRef = doc(db, 'users', userId)
-    await updateDoc(userRef, {
-      tenantId: null,
-      updatedAt: serverTimestamp()
-    })
+    await apiClient.put('/api/User/RemoveFromTenant', { userId })
   } catch (error) {
     console.error('Error removing user from tenant:', error)
     throw error
@@ -197,13 +169,13 @@ export const removeUserFromTenant = async (userId) => {
  */
 export const getTenantUsers = async (tenantId) => {
   try {
-    const usersRef = collection(db, 'users')
-    const q = query(usersRef, where('tenantId', '==', tenantId))
-    const snapshot = await getDocs(q)
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+    const url = buildUrl(USER_ENDPOINTS.LIST, { tenantId })
+    const response = await apiClient.get(url)
+    const users = unwrapResponse(response)
+    return normalizeEntities(users).map(user => normalizeDates(user, ['createdAt', 'updatedAt', 'lastLogin']))
   } catch (error) {
     console.error('Error getting tenant users:', error)
-    throw error
+    return []
   }
 }
 
@@ -216,13 +188,9 @@ export const getTenantUsers = async (tenantId) => {
  */
 export const isSystemAdmin = async (userId) => {
   try {
-    const userRef = doc(db, 'users', userId)
-    const userSnap = await getDoc(userRef)
-
-    if (userSnap.exists()) {
-      return userSnap.data().isSystemAdmin === true
-    }
-    return false
+    const response = await apiClient.get(USER_ENDPOINTS.GET_BY_ID(userId))
+    const userData = unwrapResponse(response)
+    return userData?.isSystemAdmin === true
   } catch (error) {
     console.error('Error checking system admin status:', error)
     return false
@@ -234,11 +202,7 @@ export const isSystemAdmin = async (userId) => {
  */
 export const setSystemAdmin = async (userId, isAdmin = true) => {
   try {
-    const userRef = doc(db, 'users', userId)
-    await updateDoc(userRef, {
-      isSystemAdmin: isAdmin,
-      updatedAt: serverTimestamp()
-    })
+    await apiClient.put(USER_ENDPOINTS.UPDATE(userId), { isSystemAdmin: isAdmin })
   } catch (error) {
     console.error('Error setting system admin:', error)
     throw error
@@ -250,13 +214,13 @@ export const setSystemAdmin = async (userId, isAdmin = true) => {
  */
 export const getSystemAdmins = async () => {
   try {
-    const usersRef = collection(db, 'users')
-    const q = query(usersRef, where('isSystemAdmin', '==', true))
-    const snapshot = await getDocs(q)
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+    const url = buildUrl(USER_ENDPOINTS.LIST, { isSystemAdmin: true })
+    const response = await apiClient.get(url)
+    const users = unwrapResponse(response)
+    return normalizeEntities(users)
   } catch (error) {
     console.error('Error getting system admins:', error)
-    throw error
+    return []
   }
 }
 
@@ -266,98 +230,12 @@ export const getSystemAdmins = async () => {
 
 /**
  * Migrate existing data to a tenant
- * This updates all existing documents to include a tenantId
- * Should be run once to migrate existing Speccon data
+ * This should be handled by the backend API
  */
 export const migrateDataToTenant = async (tenantId) => {
   try {
-    const batch = writeBatch(db)
-    let updateCount = 0
-    const maxBatchSize = 400 // Firestore limit is 500, leave some buffer
-
-    // Collections to migrate
-    const collections = [
-      'clients',
-      'deals',
-      'followUpTasks',
-      'messages',
-      'quotes',
-      'invoices',
-      'forecasts',
-      'feedback',
-      'clientFinancials',
-      'budgets',
-      'skillsPartners',
-      'products',
-      'productLines'
-    ]
-
-    for (const collectionName of collections) {
-      const collRef = collection(db, collectionName)
-      const snapshot = await getDocs(collRef)
-
-      for (const docSnap of snapshot.docs) {
-        const data = docSnap.data()
-        // Only update if tenantId is not already set
-        if (!data.tenantId) {
-          batch.update(docSnap.ref, {
-            tenantId,
-            updatedAt: serverTimestamp()
-          })
-          updateCount++
-
-          // Commit batch if approaching limit
-          if (updateCount >= maxBatchSize) {
-            await batch.commit()
-            updateCount = 0
-          }
-        }
-      }
-    }
-
-    // Migrate users - only those without tenantId and not system admins
-    const usersRef = collection(db, 'users')
-    const usersSnap = await getDocs(usersRef)
-
-    for (const userDoc of usersSnap.docs) {
-      const userData = userDoc.data()
-      // Only update non-system-admins without a tenantId
-      if (!userData.tenantId && !userData.isSystemAdmin) {
-        batch.update(userDoc.ref, {
-          tenantId,
-          updatedAt: serverTimestamp()
-        })
-        updateCount++
-
-        if (updateCount >= maxBatchSize) {
-          await batch.commit()
-          updateCount = 0
-        }
-      }
-    }
-
-    // Migrate systemSettings
-    const settingsRef = collection(db, 'systemSettings')
-    const settingsSnap = await getDocs(settingsRef)
-
-    for (const settingDoc of settingsSnap.docs) {
-      const settingData = settingDoc.data()
-      if (!settingData.tenantId) {
-        batch.update(settingDoc.ref, {
-          tenantId,
-          updatedAt: serverTimestamp()
-        })
-        updateCount++
-      }
-    }
-
-    // Commit any remaining updates
-    if (updateCount > 0) {
-      await batch.commit()
-    }
-
-    console.log('Data migration completed for tenant:', tenantId)
-    return { success: true }
+    const response = await apiClient.post('/api/Tenant/MigrateData', { tenantId })
+    return unwrapResponse(response)
   } catch (error) {
     console.error('Error migrating data to tenant:', error)
     throw error

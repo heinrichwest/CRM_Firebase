@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { doc, updateDoc, serverTimestamp } from 'firebase/firestore'
-import { db } from '../config/firebase'
-import { getUsersByTenant, updateUserRole, getManagersInTenant, assignSalespersonToManager, removeSalespersonFromManager } from '../services/userService'
+import { getUsersByTenant, updateUserRole, getManagersInTenant, assignSalespersonToManager, removeSalespersonFromManager, updateUserPermissions } from '../services/userService'
 import { getRoles, SYSTEM_FEATURES, getFeatureCategories } from '../services/roleService'
 import { createUserAccount, sendPasswordReset } from '../services/userInvitationService'
 import { getTenants } from '../services/tenantService'
@@ -389,12 +387,8 @@ const UserManagement = () => {
         ? currentPermissions.filter(p => p !== permissionId)
         : [...currentPermissions, permissionId]
 
-      // Update in Firestore
-      const userRef = doc(db, 'users', userId)
-      await updateDoc(userRef, {
-        customPermissions: newPermissions,
-        updatedAt: serverTimestamp()
-      })
+      // Update via API
+      await updateUserPermissions(userId, newPermissions)
 
       setUserPermissions({
         ...userPermissions,
@@ -774,11 +768,7 @@ const UserManagement = () => {
                     className="clear-custom-btn"
                     onClick={async () => {
                       try {
-                        const userRef = doc(db, 'users', selectedUser.id)
-                        await updateDoc(userRef, {
-                          customPermissions: [],
-                          updatedAt: serverTimestamp()
-                        })
+                        await updateUserPermissions(selectedUser.id, [])
                         setUserPermissions({
                           ...userPermissions,
                           [selectedUser.id]: []
