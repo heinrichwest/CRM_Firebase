@@ -43,17 +43,22 @@ function AppRoutes() {
     return (
       <div style={{
         display: 'flex',
+        flexDirection: 'column',
         justifyContent: 'center',
         alignItems: 'center',
-        height: '100vh'
+        height: '100vh',
+        background: '#f5f5f5',
+        color: '#12265E',
+        fontFamily: 'Roboto, sans-serif'
       }}>
-        <div>Loading...</div>
+        <div style={{ fontSize: 18, marginBottom: 8 }}>Loading Speccon CRM...</div>
+        <div style={{ fontSize: 14, color: '#666' }}>Connecting to server</div>
       </div>
     )
   }
 
   return (
-    <Router future={{ v7_relativeSplatPath: true }}>
+    <Router future={{ v7_relativeSplatPath: true, v7_startTransition: true }}>
       <Routes>
         <Route path="/login" element={!currentUser ? <Login /> : <Navigate to="/dashboard" />} />
         <Route path="/" element={currentUser ? <Layout /> : <Navigate to="/login" />}>

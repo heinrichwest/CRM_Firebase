@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTenant } from '../context/TenantContext'
 import { login as apiLogin, changePassword as apiChangePassword } from '../api'
 import { getUserFriendlyError } from '../api/adapters/responseAdapter'
 import './Login.css'
 
 const Login = () => {
   const navigate = useNavigate()
+  const { refreshAuth } = useTenant()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -34,6 +36,8 @@ const Login = () => {
         return
       }
 
+      // Update auth state so currentUser is set before we navigate (avoids redirect back to login)
+      await refreshAuth()
       // Login successful - navigate to dashboard
       navigate('/', { replace: true })
     } catch (err) {
@@ -68,7 +72,8 @@ const Login = () => {
       await apiChangePassword(password, newPassword)
 
       setShowPasswordChangeModal(false)
-      // Navigate to dashboard after password change
+      // Update auth state then navigate to dashboard
+      await refreshAuth()
       navigate('/', { replace: true })
     } catch (err) {
       console.error('Error changing password:', err)

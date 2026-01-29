@@ -10,7 +10,7 @@
 
 import { getAccessToken, getRefreshToken, setTokens, clearTokens } from '../auth/tokenStorage'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://api.example.com'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://crm-service.speccon.co.za'
 const USE_MOCK_AUTH = import.meta.env.VITE_USE_MOCK_AUTH === 'true'
 
 /**

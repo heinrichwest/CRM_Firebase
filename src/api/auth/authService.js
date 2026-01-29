@@ -101,6 +101,31 @@ export const getCurrentRole = () => {
  * @param {boolean} rememberMe - Persist session across browser closes
  * @returns {Promise<Object>} User data with tokens
  */
+/**
+ * Extract access and refresh tokens from login API result.
+ * Supports common shapes: accessToken/refreshToken, token/refreshToken, access_token/refresh_token,
+ * or nested under result.tokens / result.data.
+ */
+const extractTokens = (result) => {
+  if (!result || typeof result !== 'object') return null
+  const access =
+    result.accessToken ??
+    result.token ??
+    result.access_token ??
+    result.tokens?.accessToken ??
+    result.tokens?.token ??
+    result.data?.accessToken ??
+    result.data?.token
+  const refresh =
+    result.refreshToken ??
+    result.refresh_token ??
+    result.tokens?.refreshToken ??
+    result.tokens?.refresh_token ??
+    result.data?.refreshToken ??
+    result.data?.refresh_token
+  return access && refresh ? { accessToken: access, refreshToken: refresh } : null
+}
+
 export const login = async (email, password, rememberMe = false) => {
   try {
     const response = await apiClient.post(USER_ENDPOINTS.LOGIN, {
@@ -109,12 +134,19 @@ export const login = async (email, password, rememberMe = false) => {
     })
 
     const result = unwrapResponse(response)
+    const tokens = extractTokens(result)
 
-    if (!result.accessToken || !result.refreshToken) {
-      throw new ApiError('Invalid login response - missing tokens', 500)
+    if (!tokens) {
+      if (import.meta.env.DEV) {
+        console.warn('Login response shape (look for token property names):', result)
+      }
+      throw new ApiError(
+        'Invalid login response - missing tokens. API should return accessToken and refreshToken (or token/access_token and refresh_token).',
+        500
+      )
     }
 
-    setTokens(result.accessToken, result.refreshToken, rememberMe)
+    setTokens(tokens.accessToken, tokens.refreshToken, rememberMe)
 
     return {
       user: {
@@ -124,8 +156,8 @@ export const login = async (email, password, rememberMe = false) => {
         role: getCurrentRole()
       },
       tokens: {
-        accessToken: result.accessToken,
-        refreshToken: result.refreshToken
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken
       }
     }
   } catch (error) {
@@ -152,11 +184,20 @@ export const logout = async () => {
 
 /**
  * Get current user details from API
+ * Tries UserDetail first, then GetCurrentUser on 404 (backend may use either).
  * @returns {Promise<Object>} User details
  */
 export const getUserDetail = async () => {
-  const response = await apiClient.get(USER_ENDPOINTS.USER_DETAIL)
-  return unwrapResponse(response)
+  try {
+    const response = await apiClient.get(USER_ENDPOINTS.USER_DETAIL)
+    return unwrapResponse(response)
+  } catch (err) {
+    if (err instanceof ApiError && err.statusCode === 404) {
+      const response = await apiClient.get(USER_ENDPOINTS.GET_CURRENT)
+      return unwrapResponse(response)
+    }
+    throw err
+  }
 }
 
 /**

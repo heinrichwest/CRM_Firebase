@@ -14,7 +14,7 @@ import * as messageApi from '../api/services/messageApiService'
 import * as settingsApi from '../api/services/settingsApiService'
 
 // Get API base URL for display
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://api.example.com'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://crm-service.speccon.co.za'
 
 const API_CATEGORIES = {
   clients: {

@@ -12,6 +12,7 @@ import {
   isAuthenticated as apiIsAuthenticated,
   getCurrentUserId,
   getCurrentTenantId,
+  getCurrentRole,
   getCurrentClaims,
   logout as apiLogout,
   getUserDetail
@@ -42,9 +43,20 @@ export const TenantProvider = ({ children }) => {
   const [effectiveProductLineIds, setEffectiveProductLineIds] = useState([])
   const [hierarchyLoading, setHierarchyLoading] = useState(false)
 
-  // Initialize auth session on mount
+  // Initialize auth session on mount (with timeout so we never hang on blank/loading)
   useEffect(() => {
-    initializeApiAuth()
+    let timeoutId = setTimeout(() => {
+      setLoading((prev) => (prev ? false : prev))
+    }, 15000)
+    const init = async () => {
+      try {
+        await initializeApiAuth()
+      } finally {
+        clearTimeout(timeoutId)
+      }
+    }
+    init()
+    return () => clearTimeout(timeoutId)
   }, [])
 
   // Listen for auth:logout events from apiClient
@@ -67,17 +79,32 @@ export const TenantProvider = ({ children }) => {
         return
       }
 
-      // Get user details from API
-      const userDetails = await getUserDetail()
       const userId = getCurrentUserId()
       const tenantId = getCurrentTenantId()
+      let userDetails
 
-      // Create a user object compatible with Firebase user structure
+      try {
+        userDetails = await getUserDetail()
+      } catch (apiError) {
+        // UserDetail/GetCurrentUser may not exist (404) – build minimal user from JWT so login still works
+        console.warn('User detail API failed, using JWT claims:', apiError?.message)
+        const claims = getCurrentClaims() || {}
+        userDetails = {
+          id: userId,
+          key: userId,
+          email: claims.email || claims.Email || '',
+          name: claims.name || claims.Name || claims.email || claims.Email || userId,
+          displayName: claims.name || claims.Name || claims.email || claims.Email || userId,
+          tenantId: tenantId || claims.tenantId,
+          role: getCurrentRole() || claims.role
+        }
+      }
+
       const apiUser = {
         uid: userId,
         email: userDetails.email,
         displayName: userDetails.displayName || userDetails.name,
-        tenantId
+        tenantId: userDetails.tenantId || tenantId
       }
 
       setCurrentUser(apiUser)
@@ -283,6 +310,16 @@ export const TenantProvider = ({ children }) => {
     clearUserState()
   }
 
+  // Re-run auth check (e.g. after login so currentUser is set before navigating)
+  const refreshAuth = useCallback(async () => {
+    setLoading(true)
+    try {
+      await initializeApiAuth()
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
   const value = {
     currentUser,
     userData,
@@ -292,6 +329,7 @@ export const TenantProvider = ({ children }) => {
     loading,
     switchTenant,
     refreshUserData,
+    refreshAuth,
     getTenantId,
     hasPermission,
     hasTenantAccess,
